@@ -1,0 +1,207 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+  body {
+    @apply bg-obsidian font-sans text-ivory antialiased;
+    letter-spacing: -0.005em;
+    overflow-x: hidden;
+  }
+  ::selection {
+    background: #d4af37;
+    color: #0a0d0c;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #26302b #0a0d0c;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-serif;
+    letter-spacing: -0.01em;
+  }
+  select,
+  input,
+  textarea {
+    color-scheme: dark;
+  }
+  :focus-visible {
+    outline: 1px solid #d4af37;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply relative border border-hairline bg-basalt;
+  }
+  .panel-head {
+    @apply flex items-center justify-between gap-3 border-b border-hairline px-3 py-2;
+  }
+  .label {
+    @apply font-mono text-[10px] uppercase tracking-[0.18em] text-sage;
+  }
+  .tabular {
+    @apply font-mono;
+    font-variant-numeric: tabular-nums;
+  }
+  .xh {
+    @apply pointer-events-none absolute select-none font-mono text-[11px] leading-none text-sage/70;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 border border-hairline bg-charcoal px-3 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ivory transition-colors;
+  }
+  .btn:hover:not(:disabled) {
+    @apply border-gold text-gold;
+  }
+  .btn:disabled {
+    @apply cursor-not-allowed opacity-40;
+  }
+  .btn-gold {
+    @apply border-gold bg-gold text-obsidian;
+  }
+  .btn-gold:hover:not(:disabled) {
+    @apply bg-ivory text-obsidian;
+    border-color: #f3f4f6;
+  }
+  .btn-emerald {
+    @apply border-emerald/60 text-emerald;
+  }
+  .btn-emerald:hover:not(:disabled) {
+    @apply border-emerald bg-emerald/10 text-emerald;
+  }
+  .btn-crimson {
+    @apply border-crimson/70 text-crimson;
+  }
+  .btn-crimson:hover:not(:disabled) {
+    @apply border-crimson bg-crimson/10 text-crimson;
+  }
+  .field {
+    @apply w-full border border-hairline bg-charcoal px-3 py-2 text-sm text-ivory placeholder:text-sage/60;
+  }
+  .field:focus {
+    @apply border-gold outline-none;
+  }
+  .stamp {
+    @apply inline-block border-2 border-crimson px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-crimson;
+    transform: rotate(-3deg);
+  }
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-scroll var(--ticker-duration, 70s) linear infinite;
+}
+.ticker-wrap:hover .ticker-track {
+  animation-play-state: paused;
+}
+
+@keyframes led-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55);
+  }
+  50% {
+    opacity: 0.65;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0);
+  }
+}
+.led {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: #10b981;
+  animation: led-pulse 1.6s ease-in-out infinite;
+}
+.led-gold {
+  background: #d4af37;
+  animation-name: led-pulse-gold;
+}
+@keyframes led-pulse-gold {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.55);
+  }
+  50% {
+    opacity: 0.65;
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0);
+  }
+}
+
+@keyframes glitch {
+  0%,
+  100% {
+    transform: translate(0);
+    opacity: 1;
+  }
+  20% {
+    transform: translate(-2px, 1px);
+    opacity: 0.8;
+  }
+  40% {
+    transform: translate(2px, -1px);
+    opacity: 1;
+  }
+  60% {
+    transform: translate(-1px, -1px);
+    opacity: 0.6;
+  }
+  80% {
+    transform: translate(1px, 1px);
+    opacity: 0.95;
+  }
+}
+.glitch {
+  animation: glitch 0.9s steps(2, end) infinite;
+  color: #e11d48;
+}
+
+@keyframes flash-border {
+  0%,
+  100% {
+    border-color: #e11d48;
+  }
+  50% {
+    border-color: #d4af37;
+  }
+}
+.flash-border {
+  animation: flash-border 1s steps(2, end) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+.blink {
+  animation: blink 1s steps(2, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track,
+  .led,
+  .glitch,
+  .flash-border,
+  .blink {
+    animation: none !important;
+  }
+}

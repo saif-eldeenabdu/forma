@@ -1,0 +1,9 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": true,
+    "committeeState": {
+      ".validate": "newData.hasChildren(['currentMode', 'timer'])"
+    }
+  }
+}
