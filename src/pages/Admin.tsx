@@ -22,13 +22,16 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
 ];
 
 /* ------------------------------ PIN gate ------------------------------ */
-function PinGate() {
+function PinGate({ onSuccess }: { onSuccess?: () => void }) {
   const { unlock } = useStore();
   const [pin, setPin] = useState('');
   const [err, setErr] = useState(false);
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!unlock(pin)) {
+    if (unlock(pin)) {
+      setPin('');
+      onSuccess?.();
+    } else {
       setErr(true);
       setPin('');
     }
@@ -38,7 +41,20 @@ function PinGate() {
       <Panel title="Chair Control Center // Restricted">
         <form onSubmit={submit} className="space-y-3">
           <p className="text-sm text-sage">Enter the Chair PIN to unlock committee controls.</p>
-          <input autoFocus type="password" inputMode="numeric" value={pin} maxLength={8} onChange={(e) => { setPin(e.target.value); setErr(false); }} className={`field tabular text-center text-xl tracking-[0.6em] ${err ? '!border-crimson' : ''}`} aria-label="Chair PIN" />
+          <input
+            autoFocus
+            type="password"
+            placeholder="••••"
+            inputMode="numeric"
+            value={pin}
+            maxLength={8}
+            onChange={(e) => {
+              setPin(e.target.value);
+              setErr(false);
+            }}
+            className={`field tabular text-center text-xl tracking-[0.6em] ${err ? '!border-crimson' : ''}`}
+            aria-label="Chair PIN"
+          />
           {err && <p className="font-mono text-[11px] uppercase text-crimson">Access denied // invalid PIN</p>}
           <button className="btn btn-gold w-full" type="submit">
             <Lock size={13} /> Authenticate
@@ -509,7 +525,8 @@ function SwanTab() {
 export default function Admin() {
   const { isChair, state, toast } = useStore();
   const [tab, setTab] = useState<Tab>('timer');
-  if (!isChair) return <PinGate />;
+  const [localUnlocked, setLocalUnlocked] = useState(false);
+  if (!isChair && !localUnlocked) return <PinGate onSuccess={() => setLocalUnlocked(true)} />;
   const pendingMotions = state.motions.filter((m) => m.status === 'PENDING').length;
   const pendingTrades =
     state.trades.filter((t) => t.status === 'PENDING').length +

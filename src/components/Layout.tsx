@@ -49,6 +49,7 @@ function PinModal({ onClose }: { onClose: () => void }) {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (unlock(pin)) {
+      setPin('');
       onClose();
       navigate('/admin');
     } else {
@@ -86,6 +87,7 @@ function PinModal({ onClose }: { onClose: () => void }) {
           autoFocus
           inputMode="numeric"
           type="password"
+          placeholder="••••"
           value={pin}
           onChange={(e) => {
             setPin(e.target.value);
@@ -253,7 +255,7 @@ export default function Layout() {
               </button>
             )}
             <button className="btn opacity-60 hover:opacity-100" onClick={() => (isChair ? navigate('/admin') : setPinOpen(true))}>
-              <Lock size={12} /> Chair Access (PIN: 2026)
+              <Lock size={12} /> Chair Access
             </button>
           </div>
         </div>

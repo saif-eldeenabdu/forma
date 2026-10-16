@@ -32,7 +32,7 @@ import type {
   Updates,
 } from './types';
 
-export const CHAIR_PIN = '2026';
+export const CHAIR_PIN = '0907';
 export const BRICS_CLEAR_QUORUM = 6;
 
 export type YieldKind = 'CHAIR' | 'DELEGATE' | 'QUESTIONS';
@@ -120,7 +120,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [backend, setBackend] = useState<Backend>(() => createFirebaseBackend());
   const [syncNote, setSyncNote] = useState('');
   const [me, setMeState] = useState<string>(() => localStorage.getItem(ME_KEY) ?? '');
-  const [isChair, setIsChair] = useState<boolean>(() => sessionStorage.getItem(CHAIR_KEY) === '1');
+  const [isChair, setIsChair] = useState<boolean>(
+    () => sessionStorage.getItem(CHAIR_KEY) === '1' || localStorage.getItem(CHAIR_KEY) === '1',
+  );
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -739,8 +741,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setMeState(name);
   }, []);
   const unlock = useCallback((pin: string) => {
-    if (pin === CHAIR_PIN) {
+    if (pin.trim() === CHAIR_PIN) {
       sessionStorage.setItem(CHAIR_KEY, '1');
+      localStorage.setItem(CHAIR_KEY, '1');
       setIsChair(true);
       return true;
     }
@@ -748,6 +751,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
   const lock = useCallback(() => {
     sessionStorage.removeItem(CHAIR_KEY);
+    localStorage.removeItem(CHAIR_KEY);
     setIsChair(false);
   }, []);
 
