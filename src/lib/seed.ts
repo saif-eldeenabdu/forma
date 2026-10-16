@@ -1,4 +1,6 @@
 import type { RootState } from './types';
+import { COUNTRY_NAMES } from '../data/countries';
+import { defaultStock } from '../data/grain';
 
 /** Exact initial RTDB structure from the master spec (plus Chair-engine nodes). */
 export function createSeed(now = Date.now()): RootState {
@@ -27,6 +29,8 @@ export function createSeed(now = Date.now()): RootState {
       crisisAlert: null,
       sanctions: {},
       pressure: {},
+      suezTollCurrency: 'USD',
+      assetFreeze: null,
     },
     currencies: {
       BRL: { name: 'Brazilian Real', rateToUSD: 5.15, change24h: 0.4, history: [5.25, 5.22, 5.19, 5.15] },
@@ -49,5 +53,7 @@ export function createSeed(now = Date.now()): RootState {
     ],
     trades: [],
     directives: [],
+    grainStockpiles: Object.fromEntries(COUNTRY_NAMES.map((c) => [c, defaultStock(c)])),
+    grainContracts: [],
   };
 }

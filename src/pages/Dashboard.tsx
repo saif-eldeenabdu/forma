@@ -6,6 +6,7 @@ import { COUNTRIES, byCurrency } from '../data/countries';
 import { fmtClock } from '../lib/timer';
 import { AnimatedNumber, Panel, Sparkline } from '../components/ui';
 import { GslPanel, TimerPanel } from '../components/Timer';
+import FreezeBanner from '../components/FreezeBanner';
 
 const BASELINE_USD = 58.4;
 const LINE_COLORS = ['#D4AF37', '#10B981', '#E11D48', '#F3F4F6', '#C08457', '#7FB069', '#8E9B94', '#E8C872', '#4F8F7A', '#D97B66', '#B8B8A8'];
@@ -19,7 +20,7 @@ function MacroBar() {
   const modeColor = cs.currentMode === 'NORMAL' ? 'text-emerald' : 'text-crimson';
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
       <Panel title="Global USD Reserve Share">
         <div className="flex items-end justify-between">
           <AnimatedNumber value={cs.usdDominanceIndex} suffix="%" className="text-5xl text-ivory" />
@@ -54,6 +55,19 @@ function MacroBar() {
           <div className="h-full bg-emerald transition-[width] duration-700" style={{ width: `${cs.bricsPayAdoption}%` }} />
         </div>
         <p className="mt-2 text-xs text-sage">Share of intra-BRICS trade bypassing Western SWIFT.</p>
+      </Panel>
+
+      <Panel title="Suez Canal Maritime Toll System">
+        <div className="flex items-center gap-2">
+          <span className={`led ${cs.suezTollCurrency === 'BRICS_PAY' ? 'led-gold' : 'led-amber'}`} />
+          <span className={`tabular text-xs font-bold uppercase ${cs.suezTollCurrency === 'BRICS_PAY' ? 'text-gold' : 'text-ivory'}`}>
+            {cs.suezTollCurrency === 'BRICS_PAY' ? 'Billed in: BRICS Pay / Local only' : 'Billed in: USD [Default]'}
+          </span>
+        </div>
+        <p className="mt-3 font-serif text-xl leading-tight text-ivory">
+          {cs.suezTollCurrency === 'BRICS_PAY' ? 'De-dollarized maritime corridor' : 'Dollar-denominated transit'}
+        </p>
+        <p className="mt-2 text-xs text-sage">Egypt controls the toll currency for all Canal transit dues.</p>
       </Panel>
 
       <Panel title="Committee Status">
@@ -116,6 +130,7 @@ function ExchangeMatrix({ selected, toggle }: { selected: string[]; toggle: (cod
                     <span className="tabular text-sm font-bold text-ivory">{code}</span>
                     <span className="text-xs text-sage">{cur.name}</span>
                     {sanction && <span className="stamp">Sanctioned // SWIFT cutoff</span>}
+                    {country && cs.assetFreeze?.country === country.name && <span className="stamp">Assets frozen // Clearing suspended</span>}
                     {pressure && !frozen && <span className="tabular border border-gold px-1 text-[9px] uppercase text-gold">{pressure}</span>}
                   </div>
                 </td>
@@ -221,6 +236,8 @@ function Roster() {
                     <span className="stamp">Sanctioned // SWIFT cutoff</span>
                     <p className="tabular mt-1 text-[10px] text-crimson">{left > 0 ? `BAIL-OUT WINDOW ${fmtClock(left)}` : 'BAIL-OUT WINDOW CLOSED'}</p>
                   </>
+                ) : cs.assetFreeze?.country === c.name ? (
+                  <span className="stamp">Assets frozen // Clearing suspended</span>
                 ) : speaking ? (
                   <span className="label !text-gold">● On the floor</span>
                 ) : (
@@ -240,6 +257,7 @@ export default function Dashboard() {
   const toggle = (code: string) => setSelected((s) => (s.includes(code) ? s.filter((x) => x !== code) : [...s, code]));
   return (
     <div className="space-y-3">
+      <FreezeBanner />
       <MacroBar />
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
         <div className="space-y-3 xl:col-span-7 2xl:col-span-8">

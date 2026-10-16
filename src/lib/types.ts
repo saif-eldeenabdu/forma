@@ -1,4 +1,4 @@
-export type Mode = 'NORMAL' | 'BARTER_CRISIS' | 'SWIFT_BLACKOUT' | 'BOND_DUMP';
+export type Mode = 'NORMAL' | 'BARTER_CRISIS' | 'SWIFT_BLACKOUT' | 'BOND_DUMP' | 'ASSET_FREEZE';
 export type TimerType = 'GSL' | 'MOD' | 'UNMOD';
 
 export interface TimerState {
@@ -21,7 +21,7 @@ export interface GslRequest {
 }
 
 export type Severity = 'WARNING' | 'CRITICAL' | 'ABSURD';
-export type AlertKind = 'BARTER' | 'BOND_DUMP' | 'SANCTION' | 'CUSTOM';
+export type AlertKind = 'BARTER' | 'BOND_DUMP' | 'SANCTION' | 'FREEZE' | 'CUSTOM';
 
 export interface CrisisAlert {
   id: string;
@@ -35,6 +35,16 @@ export interface CrisisAlert {
 export interface Sanction {
   at: number;
   until: number;
+}
+
+export type SuezCurrency = 'USD' | 'BRICS_PAY';
+
+export interface AssetFreeze {
+  country: string;
+  amountB: number;
+  at: number;
+  /** Delegations that have co-sponsored BRICS Clear (normalised from an id-keyed map). */
+  signers: string[];
 }
 
 export interface CommitteeState {
@@ -51,6 +61,8 @@ export interface CommitteeState {
   crisisAlert: CrisisAlert | null;
   sanctions: Record<string, Sanction>;
   pressure: Record<string, string>;
+  suezTollCurrency: SuezCurrency;
+  assetFreeze: AssetFreeze | null;
 }
 
 export interface Currency {
@@ -96,12 +108,38 @@ export interface Trade {
   resolvedAt?: number;
 }
 
+export type GrainCommodity = 'WHEAT' | 'SOY' | 'RICE';
+export type GrainSettlement = 'BRICS_PAY' | 'USD';
+
+export interface GrainStock {
+  wheat: number;
+  soy: number;
+  rice: number;
+}
+
+export interface GrainContract {
+  id: string;
+  importer: string;
+  exporter: string;
+  commodity: GrainCommodity;
+  quantityMT: number;
+  settlement: GrainSettlement;
+  /** Clearing surcharge %: 0 for BRICS Pay / local currency, 8 for USD. */
+  feePct: number;
+  status: TradeStatus;
+  createdAt: number;
+  resolvedAt?: number;
+}
+
 export interface Directive {
   id: string;
   from: string;
   subject: string;
   body: string;
   createdAt: number;
+  /** Actionable directives (e.g. Egypt's Suez decree) carry an action the Chair can approve. */
+  action?: { type: 'SUEZ_TOLL'; currency: SuezCurrency };
+  status?: 'PENDING' | 'APPROVED' | 'DISMISSED';
 }
 
 export interface RootState {
@@ -111,6 +149,8 @@ export interface RootState {
   newsTicker: string[];
   trades: Trade[];
   directives: Directive[];
+  grainStockpiles: Record<string, GrainStock>;
+  grainContracts: GrainContract[];
 }
 
 /** Multi-path update map: `a/b/c` -> value (null deletes). Mirrors Firebase `update()`. */

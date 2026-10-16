@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { ArrowLeftRight, Ban, Check, Hourglass, Lock, Send, X } from 'lucide-react';
 import { COUNTRY_NAMES, useStore } from '../lib/store';
 import { Field, PageHeader, Panel } from '../components/ui';
-import type { Trade, TradeKind } from '../lib/types';
+import type { GrainCommodity, GrainSettlement, Trade, TradeKind } from '../lib/types';
+import { GRAIN_TYPES, USD_SURCHARGE_PCT, fmtMT, grainLedgerLine, grainType } from '../data/grain';
 
 const BARTER_PRESETS: { unit: string; qty: number }[] = [
   { unit: 'Barrels of Urals Crude Oil', qty: 300000 },
@@ -161,6 +162,130 @@ function TradeRow({ t }: { t: Trade }) {
   );
 }
 
+function GrainExchange({ locked }: { locked: boolean }) {
+  const { state, me, actions } = useStore();
+  const [importer, setImporter] = useState(me);
+  const [commodity, setCommodity] = useState<GrainCommodity>('WHEAT');
+  const [exporterSel, setExporterSel] = useState('');
+  const [qty, setQty] = useState(250000);
+  const [settlement, setSettlement] = useState<GrainSettlement>('BRICS_PAY');
+  const [sent, setSent] = useState(false);
+
+  const g = grainType(commodity);
+  const holders = COUNTRY_NAMES.filter((c) => (state.grainStockpiles[c]?.[g.key] ?? 0) > 0);
+  const exporter = holders.includes(exporterSel) ? exporterSel : (holders.includes(g.defaultExporter) ? g.defaultExporter : (holders[0] ?? ''));
+  const buyer = importer || me;
+  const stock = state.grainStockpiles[exporter]?.[g.key] ?? 0;
+  const valid = !locked && !!buyer && !!exporter && buyer !== exporter && qty > 0 && qty <= stock;
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!valid) return;
+    actions.submitGrain({ importer: buyer, exporter, commodity, quantityMT: qty, settlement });
+    setSent(true);
+    setTimeout(() => setSent(false), 3500);
+  };
+
+  const holdings = COUNTRY_NAMES.filter((c) => GRAIN_TYPES.some((t) => (state.grainStockpiles[c]?.[t.key] ?? 0) > 0));
+
+  return (
+    <Panel title="BRICS Grain Exchange // Commodity Futures & Spot Desk" tone={locked ? 'crimson' : undefined}>
+      {locked ? (
+        <div className="grid place-items-center gap-3 py-8 text-center">
+          <Lock size={24} className="text-crimson" />
+          <p className="max-w-xs text-sm text-sage">Grain clearing is suspended while banking is offline. Use the barter desk instead.</p>
+        </div>
+      ) : (
+        <form onSubmit={submit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Importer">
+              <select className="field" value={buyer} onChange={(e) => setImporter(e.target.value)}>
+                <option value="">— select —</option>
+                {COUNTRY_NAMES.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Exporter">
+              <select className="field" value={exporter} onChange={(e) => setExporterSel(e.target.value)}>
+                {holders.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <Field label="Commodity">
+            <select className="field" value={commodity} onChange={(e) => setCommodity(e.target.value as GrainCommodity)}>
+              {GRAIN_TYPES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label={`Quantity (MT) — ${exporter || 'exporter'} holds ${fmtMT(stock)}`}>
+            <input type="number" min={1} max={stock} className="field tabular" value={qty} onChange={(e) => setQty(Number(e.target.value))} />
+          </Field>
+          <fieldset className="space-y-2">
+            <legend className="label mb-1">Settlement currency</legend>
+            <div className="grid grid-cols-2 gap-2" role="radiogroup">
+              {(['BRICS_PAY', 'USD'] as GrainSettlement[]).map((s) => (
+                <button
+                  type="button"
+                  key={s}
+                  role="radio"
+                  aria-checked={settlement === s}
+                  onClick={() => setSettlement(s)}
+                  className={`border px-2 py-2 font-mono text-[11px] uppercase tracking-wider ${settlement === s ? (s === 'USD' ? 'border-crimson bg-crimson/10 text-crimson' : 'border-emerald bg-emerald/10 text-emerald') : 'border-hairline text-sage'}`}
+                >
+                  {s === 'USD' ? 'USD' : 'BRICS Pay / Local'}
+                </button>
+              ))}
+            </div>
+            {settlement === 'USD' ? (
+              <p className="tabular text-[11px] text-crimson">High Western Clearing Surcharge (+{USD_SURCHARGE_PCT}%) Applies.</p>
+            ) : (
+              <p className="tabular text-[11px] text-emerald">0% clearing fee. Chair approval lifts BRICS Pay adoption.</p>
+            )}
+          </fieldset>
+          <button className="btn btn-gold w-full" type="submit" disabled={!valid}>
+            <Send size={13} /> Submit Agri-Commodity Swap Request
+          </button>
+          {qty > stock && <p className="tabular text-[11px] text-crimson">Quantity exceeds exporter stockpile.</p>}
+          {sent && (
+            <p role="status" className="flex items-center gap-2 border border-emerald/50 bg-emerald/10 px-3 py-2 font-mono text-[11px] uppercase text-emerald">
+              <Check size={13} /> Request lodged — awaiting Chair approval
+            </p>
+          )}
+        </form>
+      )}
+      <div className="mt-4 border-t border-hairline pt-3">
+        <p className="label mb-2">Stockpile register</p>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-sage">
+              <th className="label py-1 text-left font-normal">Holder</th>
+              {GRAIN_TYPES.map((t) => (
+                <th key={t.id} className="label py-1 text-right font-normal">{t.short}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {holdings.map((c) => (
+              <tr key={c} className="border-t border-hairline/60">
+                <td className="py-1">{c}</td>
+                {GRAIN_TYPES.map((t) => (
+                  <td key={t.id} className="tabular py-1 text-right text-ivory">{(state.grainStockpiles[c]?.[t.key] ?? 0).toLocaleString('en-US')}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
+  );
+}
+
 export default function Trade() {
   const { state } = useStore();
   const mode = state.committeeState.currentMode;
@@ -170,6 +295,8 @@ export default function Trade() {
   const trades = state.trades.filter((t) => t.kind === kind).slice().reverse();
   const approved = trades.filter((t) => t.status === 'APPROVED');
   const open = trades.filter((t) => t.status === 'PENDING');
+  const grainDone = state.grainContracts.filter((g) => g.status === 'APPROVED').slice().reverse();
+  const grainOpen = state.grainContracts.filter((g) => g.status === 'PENDING').slice().reverse();
 
   return (
     <div>
@@ -188,8 +315,8 @@ export default function Trade() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-5">
-        <div className="xl:col-span-2">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 2xl:grid-cols-3">
+        <div>
           {locked ? (
             <Panel title="Money Transfers" tone="crimson">
               <div className="grid place-items-center gap-3 py-10 text-center">
@@ -205,14 +332,22 @@ export default function Trade() {
           )}
         </div>
 
-        <div className="space-y-3 xl:col-span-3">
+        <GrainExchange locked={locked || barter} />
+
+        <div className="space-y-3 xl:col-span-2 2xl:col-span-1">
           <Panel
             title={barter ? 'Public Barter Ledger // Approved' : 'Public Settlement Ledger // Approved'}
-            right={<span className="tabular text-[11px] text-sage">{approved.length} entries</span>}
+            right={<span className="tabular text-[11px] text-sage">{approved.length + (barter ? 0 : grainDone.length)} entries</span>}
             bodyClass="p-0"
           >
             <ul className="divide-y divide-hairline">
-              {approved.length === 0 && <li className="px-3 py-4 text-sm text-sage">No approved trades yet.</li>}
+              {approved.length === 0 && (barter || grainDone.length === 0) && <li className="px-3 py-4 text-sm text-sage">No approved trades yet.</li>}
+              {!barter &&
+                grainDone.map((g) => (
+                  <li key={g.id} className="tabular px-3 py-3 text-xs text-emerald">
+                    {grainLedgerLine(g)}
+                  </li>
+                ))}
               {approved.map((t) => (
                 <TradeRow key={t.id} t={t} />
               ))}
@@ -220,15 +355,20 @@ export default function Trade() {
           </Panel>
           <Panel
             title={<span className="flex items-center gap-2"><Hourglass size={12} /> Awaiting Chair</span>}
-            right={<span className="tabular text-[11px] text-sage">{open.length}</span>}
+            right={<span className="tabular text-[11px] text-sage">{open.length + grainOpen.length}</span>}
             bodyClass="p-0"
           >
             <ul className="divide-y divide-hairline">
-              {open.length === 0 && (
+              {open.length === 0 && grainOpen.length === 0 && (
                 <li className="flex items-center gap-2 px-3 py-4 text-sm text-sage">
                   <Ban size={13} /> Nothing pending.
                 </li>
               )}
+              {grainOpen.map((g) => (
+                <li key={g.id} className="tabular px-3 py-3 text-xs text-gold">
+                  GRAIN REQUEST: {g.importer} ⇄ {g.exporter} · {fmtMT(g.quantityMT)} {grainType(g.commodity).short} · {g.settlement === 'USD' ? `USD (+${g.feePct}%)` : 'BRICS Pay'}
+                </li>
+              ))}
               {open.map((t) => (
                 <TradeRow key={t.id} t={t} />
               ))}
@@ -241,6 +381,7 @@ export default function Trade() {
           )}
         </div>
       </div>
+
     </div>
   );
 }

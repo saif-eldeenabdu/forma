@@ -15,13 +15,17 @@ import { deriveTimer } from './timer';
 import { applyValueChange, clamp, PEGGED } from './markets';
 import { uid } from './motions';
 import { byName, COUNTRY_NAMES } from '../data/countries';
+import { BRICS_PAY_ADOPTION_BOOST, USD_SURCHARGE_PCT, defaultStock, grainType } from '../data/grain';
 import type {
   CrisisAlert,
+  GrainCommodity,
+  GrainSettlement,
   Mode,
   Motion,
   MotionType,
   RootState,
   Severity,
+  SuezCurrency,
   TimerType,
   Trade,
   TradeKind,
@@ -29,6 +33,7 @@ import type {
 } from './types';
 
 export const CHAIR_PIN = '2026';
+export const BRICS_CLEAR_QUORUM = 6;
 
 export type YieldKind = 'CHAIR' | 'DELEGATE' | 'QUESTIONS';
 
@@ -74,6 +79,17 @@ export interface Actions {
   customCrisis(c: { title: string; body: string; severity: Severity }): void;
   resetMode(): void;
   resetAll(): void;
+  // asset freeze / BRICS Clear
+  executeAssetFreeze(country: string, amountB: number): void;
+  cosignBricsClear(country: string): void;
+  ratifyBricsClear(): void;
+  // suez
+  setSuezToll(currency: SuezCurrency): void;
+  submitSuezDirective(currency: SuezCurrency): void;
+  resolveDirective(id: string, approve: boolean): void;
+  // grain
+  submitGrain(g: { importer: string; exporter: string; commodity: GrainCommodity; quantityMT: number; settlement: GrainSettlement }): void;
+  resolveGrain(id: string, approved: boolean): void;
 }
 
 interface Ctx {
@@ -171,6 +187,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       let h = 0;
       for (const ch of code) h = (h * 31 + ch.charCodeAt(0)) % 997;
       return lo + ((h % 100) / 100) * (hi - lo);
+    };
+    /** Updates for switching the Suez toll currency (inverse applied when reverting). Null if unchanged. */
+    const suezUpdates = (to: SuezCurrency): Updates | null => {
+      const cs = S().committeeState;
+      if (cs.suezTollCurrency === to) return null;
+      const sign = to === 'BRICS_PAY' ? 1 : -1;
+      const egp = S().currencies['EGP'];
+      const u: Updates = {
+        'committeeState/suezTollCurrency': to,
+        'committeeState/usdDominanceIndex': clamp(Math.round((cs.usdDominanceIndex - 3.5 * sign) * 10) / 10, 0, 100),
+        'committeeState/bricsPayAdoption': clamp(Math.round((cs.bricsPayAdoption + 8 * sign) * 10) / 10, 0, 100),
+        ...news(
+          to === 'BRICS_PAY'
+            ? 'CAIRO ISSUES DECREE 144: All maritime transit through the Suez Canal must now settle dues in BRICS Pay or Egyptian Pounds. Global shipping clearinghouses begin urgent currency conversions.'
+            : 'CAIRO: Suez Canal toll billing reverts to USD. Shipping clearinghouses unwind BRICS Pay conversions.',
+        ),
+      };
+      if (egp) u['currencies/EGP'] = applyValueChange(egp, 2.8 * sign);
+      return u;
     };
 
     const a: Actions = {
@@ -474,12 +509,125 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...news(`${severity}: ${title}`),
         });
       },
+      executeAssetFreeze(country, amountB) {
+        const c = byName(country);
+        if (!c) return;
+        const cur = S().currencies[c.currencyCode];
+        const u: Updates = {
+          'committeeState/currentMode': 'ASSET_FREEZE' as Mode,
+          'committeeState/activeCrisisBanner': `ASSETS FROZEN // ${country.toUpperCase()} // BRICS CLEAR RATIFICATION REQUIRED`,
+          'committeeState/assetFreeze': { country, amountB, at: now() },
+          'committeeState/crisisAlert': alertOf({
+            kind: 'FREEZE',
+            severity: 'CRITICAL',
+            title: `ALERT: WESTERN DEPOSITORIES (EUROCLEAR/DTCC) HAVE FROZEN SOVEREIGN ASSETS OF ${country.toUpperCase()}.`,
+            body: `$${amountB} BILLION IN FOREIGN RESERVES UNILATERALLY BLOCKED.`,
+          }),
+          ...news(`ALERT: Euroclear/DTCC freeze sovereign assets of ${country}. $${amountB}B in reserves blocked. ${c.currencyCode} -8.5%.`),
+        };
+        if (cur) u[`currencies/${c.currencyCode}`] = applyValueChange(cur, -8.5);
+        write(u);
+      },
+      cosignBricsClear(country) {
+        const cs = S().committeeState;
+        if (!cs.assetFreeze || cs.currentMode !== 'ASSET_FREEZE') return;
+        if (cs.assetFreeze.signers.includes(country)) return;
+        const count = cs.assetFreeze.signers.length + 1;
+        if (count >= BRICS_CLEAR_QUORUM) a.ratifyBricsClear();
+        else write({ [`committeeState/assetFreeze/signers/${country}`]: true });
+      },
+      ratifyBricsClear() {
+        const cs = S().committeeState;
+        if (!cs.assetFreeze) return;
+        write({
+          'committeeState/assetFreeze': null,
+          'committeeState/currentMode': 'NORMAL' as Mode,
+          'committeeState/activeCrisisBanner': '',
+          'committeeState/pressure': null,
+          'committeeState/crisisAlert': null,
+          'committeeState/usdDominanceIndex': clamp(Math.round((cs.usdDominanceIndex - 2.5) * 10) / 10, 0, 100),
+          'committeeState/bricsUnitConfidence': clamp(Math.round((cs.bricsUnitConfidence + 5) * 10) / 10, 0, 100),
+          ...news('BREAKING: BRICS Clear sovereign depository formally deployed. Member foreign reserves insulated from G7 sanctions.'),
+        });
+      },
+      setSuezToll(currency) {
+        const u = suezUpdates(currency);
+        if (u) write(u);
+      },
+      submitSuezDirective(currency) {
+        const id = uid();
+        write({
+          [`directives/${id}`]: {
+            id,
+            from: 'Egypt',
+            subject: 'PRESIDENTIAL DECREE: SUEZ CANAL TOLL OVERHAUL',
+            body:
+              currency === 'BRICS_PAY'
+                ? 'Egypt requests all Suez Canal transit dues be settled in BRICS Pay or Egyptian Pounds.'
+                : 'Egypt requests Suez Canal transit dues revert to USD billing.',
+            createdAt: now(),
+            action: { type: 'SUEZ_TOLL', currency },
+            status: 'PENDING',
+          },
+        });
+      },
+      resolveDirective(id, approve) {
+        const d = S().directives.find((x) => x.id === id);
+        if (!d) return;
+        let u: Updates = { [`directives/${id}/status`]: approve ? 'APPROVED' : 'DISMISSED' };
+        if (approve && d.action?.type === 'SUEZ_TOLL') {
+          const s = suezUpdates(d.action.currency);
+          if (s) u = { ...u, ...s };
+        }
+        write(u);
+      },
+      submitGrain(g) {
+        const id = uid();
+        write({
+          [`grainContracts/${id}`]: {
+            id,
+            ...g,
+            feePct: g.settlement === 'USD' ? USD_SURCHARGE_PCT : 0,
+            status: 'PENDING',
+            createdAt: now(),
+          },
+        });
+      },
+      resolveGrain(id, approved) {
+        const g = S().grainContracts.find((x) => x.id === id);
+        if (!g || g.status !== 'PENDING') return;
+        const u: Updates = {
+          [`grainContracts/${id}/status`]: approved ? 'APPROVED' : 'REJECTED',
+          [`grainContracts/${id}/resolvedAt`]: now(),
+        };
+        if (approved) {
+          const key = grainType(g.commodity).key;
+          const stock = S().grainStockpiles;
+          const ex = { ...(stock[g.exporter] ?? defaultStock(g.exporter)) };
+          const im = { ...(stock[g.importer] ?? defaultStock(g.importer)) };
+          if (ex[key] < g.quantityMT) return;
+          ex[key] -= g.quantityMT;
+          im[key] += g.quantityMT;
+          u[`grainStockpiles/${g.exporter}`] = ex;
+          u[`grainStockpiles/${g.importer}`] = im;
+          if (g.settlement === 'BRICS_PAY') {
+            const cs = S().committeeState;
+            u['committeeState/bricsPayAdoption'] = clamp(
+              Math.round((cs.bricsPayAdoption + BRICS_PAY_ADOPTION_BOOST) * 10) / 10,
+              0,
+              100,
+            );
+          }
+        }
+        write(u);
+      },
       resetMode() {
         write({
           'committeeState/currentMode': 'NORMAL' as Mode,
           'committeeState/activeCrisisBanner': '',
           'committeeState/pressure': null,
           'committeeState/crisisAlert': null,
+          'committeeState/assetFreeze': null,
         });
       },
       resetAll() {
@@ -491,6 +639,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           motions: null,
           trades: null,
           directives: null,
+          grainStockpiles: seed.grainStockpiles,
+          grainContracts: null,
         });
       },
     };

@@ -1,4 +1,4 @@
-import type { CommitteeState, Currency, RootState } from './types';
+import type { CommitteeState, Currency, GrainStock, RootState } from './types';
 import { createSeed } from './seed';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -20,6 +20,7 @@ export function normalize(raw: unknown): RootState {
   const seed = createSeed();
   const r = (raw ?? {}) as Record<string, any>;
   const cs = (r.committeeState ?? {}) as Partial<CommitteeState>;
+  const rawFreeze = (cs as Record<string, any>).assetFreeze as Record<string, any> | null | undefined;
 
   const committeeState: CommitteeState = {
     ...seed.committeeState,
@@ -32,6 +33,15 @@ export function normalize(raw: unknown): RootState {
     crisisAlert: cs.crisisAlert ?? null,
     sanctions: cs.sanctions ?? {},
     pressure: cs.pressure ?? {},
+    suezTollCurrency: cs.suezTollCurrency === 'BRICS_PAY' ? 'BRICS_PAY' : 'USD',
+    assetFreeze: rawFreeze
+      ? {
+          country: rawFreeze.country,
+          amountB: Number(rawFreeze.amountB) || 0,
+          at: rawFreeze.at ?? 0,
+          signers: Array.isArray(rawFreeze.signers) ? rawFreeze.signers : Object.keys(rawFreeze.signers ?? {}),
+        }
+      : null,
   };
 
   const currencies: Record<string, Currency> = {};
@@ -41,6 +51,12 @@ export function normalize(raw: unknown): RootState {
     currencies[code] = { ...base, ...c, history: toArray<number>(c.history).length ? toArray<number>(c.history) : base.history };
   }
 
+  const grainStockpiles: Record<string, GrainStock> = {};
+  const rawStock = (r.grainStockpiles ?? {}) as Record<string, any>;
+  for (const [country, base] of Object.entries(seed.grainStockpiles)) {
+    grainStockpiles[country] = { ...base, ...(rawStock[country] ?? {}) };
+  }
+
   return {
     committeeState,
     currencies,
@@ -48,5 +64,7 @@ export function normalize(raw: unknown): RootState {
     newsTicker: toArray<string>(r.newsTicker),
     trades: toArray<any>(r.trades).sort(byTime('createdAt')),
     directives: toArray<any>(r.directives).sort(byTime('createdAt')),
+    grainStockpiles,
+    grainContracts: toArray<any>(r.grainContracts).sort(byTime('createdAt')),
   };
 }

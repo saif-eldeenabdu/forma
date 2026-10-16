@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { AlertTriangle, ArrowDown, ArrowUp, Check, Gavel, Landmark, Lock, Megaphone, Pause, Play, RotateCcw, SkipForward, Skull, Trash2, TrendingUp, X } from 'lucide-react';
 import { COUNTRIES, COUNTRY_NAMES } from '../data/countries';
-import { useNow, useStore } from '../lib/store';
+import { BRICS_CLEAR_QUORUM, useNow, useStore } from '../lib/store';
+import { fmtMT, grainType } from '../data/grain';
 import { deriveTimer } from '../lib/timer';
 import { sortMotions } from '../lib/motions';
 import { fmtRate } from '../lib/markets';
@@ -17,7 +18,7 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'markets', label: 'Markets', icon: <TrendingUp size={13} /> },
   { id: 'news', label: 'News Ticker', icon: <Megaphone size={13} /> },
   { id: 'trades', label: 'Trades & Directives', icon: <Landmark size={13} /> },
-  { id: 'swan', label: 'Black Swan', icon: <Skull size={13} /> },
+  { id: 'swan', label: 'Big Bullshit Area', icon: <Skull size={13} /> },
 ];
 
 /* ------------------------------ PIN gate ------------------------------ */
@@ -254,6 +255,18 @@ function MarketsTab() {
             <MacroSlider label="BRICS Pay Adoption" value={cs.bricsPayAdoption} onCommit={(v) => actions.setMacro({ bricsPayAdoption: v })} />
           </div>
         </Panel>
+        <div className="mt-3">
+          <Panel title="Suez Canal Toll Currency" tone={cs.suezTollCurrency === 'BRICS_PAY' ? 'gold' : undefined}>
+            <div className="grid grid-cols-2 gap-px border border-hairline bg-hairline" role="radiogroup" aria-label="Suez Canal Toll Currency">
+              {(['USD', 'BRICS_PAY'] as const).map((c) => (
+                <button key={c} role="radio" aria-checked={cs.suezTollCurrency === c} onClick={() => actions.setSuezToll(c)} className={`py-2 font-mono text-[11px] uppercase tracking-wider ${cs.suezTollCurrency === c ? 'bg-gold text-obsidian' : 'bg-charcoal text-sage hover:text-ivory'}`}>
+                  {c === 'USD' ? 'USD' : 'BRICS Pay / Local'}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-sage">Switching to BRICS Pay: USD share −3.5, adoption +8.0, EGP +2.8%. Switching back reverses the effects.</p>
+          </Panel>
+        </div>
       </div>
     </div>
   );
@@ -293,6 +306,7 @@ function TradesTab() {
   const { state, actions } = useStore();
   const pending = state.trades.filter((t) => t.status === 'PENDING');
   const directives = state.directives.slice().reverse();
+  const grain = state.grainContracts.filter((g) => g.status === 'PENDING');
   return (
     <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
       <Panel title="Trade Proposals Awaiting Approval" right={<span className="tabular text-[11px] text-sage">{pending.length}</span>} bodyClass="p-0">
@@ -322,12 +336,45 @@ function TradesTab() {
               <p className="flex items-baseline gap-2">
                 <span className="font-serif text-lg">{d.subject}</span>
                 <span className="tabular text-[11px] text-gold">{d.from}</span>
+                {d.status && d.status !== 'PENDING' && (
+                  <span className={`ml-auto border px-1 font-mono text-[9px] uppercase ${d.status === 'APPROVED' ? 'border-emerald text-emerald' : 'border-sage text-sage'}`}>{d.status}</span>
+                )}
               </p>
               <p className="mt-1 whitespace-pre-wrap text-sm text-ivory/85">{d.body}</p>
+              {d.status === 'PENDING' && (
+                <div className="mt-2 flex gap-2">
+                  <button className="btn btn-emerald" onClick={() => actions.resolveDirective(d.id, true)}><Check size={12} /> Approve</button>
+                  <button className="btn btn-crimson" onClick={() => actions.resolveDirective(d.id, false)}><X size={12} /> Dismiss</button>
+                </div>
+              )}
             </li>
           ))}
         </ul>
       </Panel>
+      <Panel title="Grain Exchange Requests Awaiting Approval" right={<span className="tabular text-[11px] text-sage">{grain.length}</span>} bodyClass="p-0">
+        <ul className="divide-y divide-hairline">
+          {grain.length === 0 && <li className="px-3 py-6 text-sm text-sage">No pending grain requests.</li>}
+          {grain.map((g) => {
+            const t = grainType(g.commodity);
+            const stock = state.grainStockpiles[g.exporter]?.[t.key] ?? 0;
+            const short = stock < g.quantityMT;
+            return (
+              <li key={g.id} className="p-3">
+                <p className="font-serif text-lg">{g.importer} <span className="text-gold">⇄</span> {g.exporter}</p>
+                <p className="tabular mt-1 text-xs">
+                  {fmtMT(g.quantityMT)} {t.short} · <span className={g.settlement === 'USD' ? 'text-crimson' : 'text-emerald'}>{g.settlement === 'USD' ? `USD (+${g.feePct}% surcharge)` : 'BRICS Pay / Local (0% fee)'}</span>
+                </p>
+                <p className={`tabular text-[11px] ${short ? 'text-crimson' : 'text-sage'}`}>Exporter stock: {fmtMT(stock)}{short ? ' — insufficient' : ''}</p>
+                <div className="mt-2 flex gap-2">
+                  <button className="btn btn-emerald" disabled={short} onClick={() => actions.resolveGrain(g.id, true)}><Check size={12} /> Approve &amp; Clear</button>
+                  <button className="btn btn-crimson" onClick={() => actions.resolveGrain(g.id, false)}><X size={12} /> Reject</button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </Panel>
+
     </div>
   );
 }
@@ -346,6 +393,8 @@ function SwanTab() {
   const { state, actions } = useStore();
   const cs = state.committeeState;
   const [country, setCountry] = useState('Iran');
+  const [freezeCountry, setFreezeCountry] = useState('Brazil');
+  const [freezeAmt, setFreezeAmt] = useState(150);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [sev, setSev] = useState<Severity>('CRITICAL');
@@ -363,7 +412,7 @@ function SwanTab() {
         <button className="btn btn-emerald" onClick={actions.resetMode} disabled={cs.currentMode === 'NORMAL' && !cs.crisisAlert}><RotateCcw size={13} /> Restore Normal Operations</button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 2xl:grid-cols-4">
         <SwanCard title="Mode 1 // The Barter Protocol" desc='Cows for Grapevines. Full-screen alert; fiat rates glitch to ERR_FIAT_NULL; the Trade Floor locks money and opens the Physical Barter Ledger.'>
           <button className="btn btn-crimson w-full !py-3" onClick={actions.triggerBarter}><Skull size={14} /> Trigger Barter Protocol</button>
           <button className="btn mt-2 w-full" onClick={actions.triggerSwiftBlackout}>SWIFT Blackout only (transfers locked)</button>
@@ -388,6 +437,31 @@ function SwanTab() {
               <button className="btn btn-emerald !py-1" onClick={() => actions.liftSanctions()}>Lift all</button>
             </div>
           )}
+        </SwanCard>
+
+        <SwanCard title="MODE 4 // WESTERN ASSET FREEZE (EUROCLEAR CUTOFF)" desc="Euroclear/DTCC unilaterally block a member's foreign reserves. Currency drops 8.5%, a crimson alert hits every screen, and delegates must ratify BRICS Clear.">
+          <div className="space-y-3">
+            <select className="field" value={freezeCountry} onChange={(e) => setFreezeCountry(e.target.value)} aria-label="Country to freeze">
+              {COUNTRIES.map((c) => <option key={c.name}>{c.name}</option>)}
+            </select>
+            <div className="grid grid-cols-3 gap-px border border-hairline bg-hairline">
+              {[50, 150, 300].map((n) => (
+                <button key={n} onClick={() => setFreezeAmt(n)} aria-pressed={freezeAmt === n} className={`tabular py-2 text-xs ${freezeAmt === n ? 'bg-crimson text-ivory' : 'bg-charcoal text-sage hover:text-ivory'}`}>${n}B</button>
+              ))}
+            </div>
+            <button className="btn btn-crimson w-full !py-3" onClick={() => actions.executeAssetFreeze(freezeCountry, freezeAmt)} disabled={cs.currentMode === 'ASSET_FREEZE'}>
+              <Skull size={14} /> Execute Asset Freeze
+            </button>
+            {cs.assetFreeze && (
+              <div className="border border-hairline bg-charcoal/50 p-2">
+                <p className="tabular text-[11px] text-sage">
+                  Frozen: <span className="text-crimson">{cs.assetFreeze.country}</span> · BRICS Clear signatories{' '}
+                  <span className="text-ivory">{cs.assetFreeze.signers.length}/{BRICS_CLEAR_QUORUM}</span>
+                </p>
+                <button className="btn btn-emerald mt-2 w-full" onClick={actions.ratifyBricsClear}>Ratify BRICS Clear instantly</button>
+              </div>
+            )}
+          </div>
         </SwanCard>
       </div>
 
@@ -433,7 +507,10 @@ export default function Admin() {
   const [tab, setTab] = useState<Tab>('timer');
   if (!isChair) return <PinGate />;
   const pendingMotions = state.motions.filter((m) => m.status === 'PENDING').length;
-  const pendingTrades = state.trades.filter((t) => t.status === 'PENDING').length + state.directives.length;
+  const pendingTrades =
+    state.trades.filter((t) => t.status === 'PENDING').length +
+    state.grainContracts.filter((g) => g.status === 'PENDING').length +
+    state.directives.filter((d) => d.status === 'PENDING').length;
   const badge = (id: Tab) => (id === 'motions' ? pendingMotions : id === 'trades' ? pendingTrades : id === 'timer' ? state.committeeState.gslRequests.length : 0);
 
   return (

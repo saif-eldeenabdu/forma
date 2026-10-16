@@ -2,9 +2,10 @@ import { useState, type FormEvent } from 'react';
 import { Check, EyeOff, Send, UserPlus } from 'lucide-react';
 import { COUNTRY_NAMES, useStore } from '../lib/store';
 import { MOTION_ORDER, sortMotions } from '../lib/motions';
-import type { MotionType } from '../lib/types';
+import type { MotionType, SuezCurrency } from '../lib/types';
 import { Field, PageHeader, Panel, fmtSecondsLabel } from '../components/ui';
 import { motionLine } from '../components/Overlays';
+import FreezeBanner from '../components/FreezeBanner';
 
 function useFlash() {
   const [msg, setMsg] = useState('');
@@ -215,16 +216,64 @@ function DirectiveForm() {
   );
 }
 
+function SuezDecree() {
+  const { state, me, actions } = useStore();
+  const { msg, flash } = useFlash();
+  const current = state.committeeState.suezTollCurrency;
+  const [choice, setChoice] = useState<SuezCurrency>(current === 'USD' ? 'BRICS_PAY' : 'USD');
+  const pending = state.directives.some((d) => d.action?.type === 'SUEZ_TOLL' && d.status === 'PENDING');
+  if (me !== 'Egypt') return null;
+  const noChange = choice === current;
+  return (
+    <Panel title="Presidential Decree: Suez Canal Toll Overhaul" tone="gold">
+      <div className="space-y-3">
+        <p className="text-xs text-sage">
+          Exclusive to the Arab Republic of Egypt. Current billing currency:{' '}
+          <span className="tabular text-ivory">{current === 'USD' ? 'USD' : 'BRICS PAY / LOCAL'}</span>
+        </p>
+        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Suez toll currency">
+          {(['USD', 'BRICS_PAY'] as SuezCurrency[]).map((c) => (
+            <button
+              key={c}
+              role="radio"
+              aria-checked={choice === c}
+              onClick={() => setChoice(c)}
+              className={`border px-2 py-2 font-mono text-[11px] uppercase tracking-wider ${choice === c ? 'border-gold bg-gold/10 text-gold' : 'border-hairline text-sage'}`}
+            >
+              {c === 'USD' ? 'Bill in USD' : 'BRICS Pay / EGP'}
+            </button>
+          ))}
+        </div>
+        <button
+          className="btn btn-gold w-full"
+          disabled={noChange || pending}
+          onClick={() => {
+            actions.submitSuezDirective(choice);
+            flash('Sovereign toll directive sent to the Chair');
+          }}
+        >
+          <Send size={13} /> {pending ? 'Directive awaiting Chair' : 'Submit sovereign toll directive to Chair'}
+        </button>
+        <Confirm msg={msg} />
+      </div>
+    </Panel>
+  );
+}
+
 export default function Floor() {
   return (
-    <div>
-      <PageHeader kicker="Floor Portal // Procedure" title="Motions & Floor" />
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
-        <MotionForm />
-        <MotionLedger />
-        <div className="space-y-3">
-          <GslRequest />
-          <DirectiveForm />
+    <div className="space-y-3">
+      <FreezeBanner />
+      <div>
+        <PageHeader kicker="Floor Portal // Procedure" title="Motions & Floor" />
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+          <MotionForm />
+          <MotionLedger />
+          <div className="space-y-3">
+            <SuezDecree />
+            <GslRequest />
+            <DirectiveForm />
+          </div>
         </div>
       </div>
     </div>

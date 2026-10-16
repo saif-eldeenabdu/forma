@@ -25,6 +25,7 @@ export function toDbForm(seed: RootState): Record<string, unknown> {
     motions: {},
     trades: {},
     directives: {},
+    grainContracts: {},
   };
 }
 
@@ -116,16 +117,22 @@ export interface FirebaseEnv {
   messagingSenderId?: string;
 }
 
+const clean = (v?: string): string | undefined => {
+  if (!v) return undefined;
+  const s = v.trim().replace(/^["']|["'],?$/g, '').replace(/,$/, '').trim();
+  return s || undefined;
+};
+
 export function readFirebaseEnv(): FirebaseEnv {
   const e = import.meta.env;
   return {
-    apiKey: e.VITE_FIREBASE_API_KEY,
-    authDomain: e.VITE_FIREBASE_AUTH_DOMAIN,
-    databaseURL: e.VITE_FIREBASE_DATABASE_URL,
-    projectId: e.VITE_FIREBASE_PROJECT_ID,
-    appId: e.VITE_FIREBASE_APP_ID,
-    storageBucket: e.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: e.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    apiKey: clean(e.VITE_FIREBASE_API_KEY),
+    authDomain: clean(e.VITE_FIREBASE_AUTH_DOMAIN),
+    databaseURL: clean(e.VITE_FIREBASE_DATABASE_URL),
+    projectId: clean(e.VITE_FIREBASE_PROJECT_ID),
+    appId: clean(e.VITE_FIREBASE_APP_ID),
+    storageBucket: clean(e.VITE_FIREBASE_STORAGE_BUCKET),
+    messagingSenderId: clean(e.VITE_FIREBASE_MESSAGING_SENDER_ID),
   };
 }
 

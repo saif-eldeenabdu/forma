@@ -134,6 +134,11 @@
   background: #d4af37;
   animation-name: led-pulse-gold;
 }
+.led-amber {
+  background: #b7791f;
+  animation: none;
+  opacity: 0.85;
+}
 @keyframes led-pulse-gold {
   0%,
   100% {
