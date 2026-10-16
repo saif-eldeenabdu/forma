@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { createBackend, createLocalBackend, toDbForm, type Backend, type SyncMode } from './backend';
+import { createBackend, createFirebaseBackend, toDbForm, type Backend, type SyncMode } from './backend';
 import { createSeed } from './seed';
 import { normalize } from './normalize';
 import { deriveTimer } from './timer';
@@ -117,7 +117,7 @@ const CHAIR_KEY = 'brics-net:chair';
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<RootState>(() => normalize(null));
   const [ready, setReady] = useState(false);
-  const [backend, setBackend] = useState<Backend>(() => createLocalBackend());
+  const [backend, setBackend] = useState<Backend>(() => createFirebaseBackend());
   const [syncNote, setSyncNote] = useState('');
   const [me, setMeState] = useState<string>(() => localStorage.getItem(ME_KEY) ?? '');
   const [isChair, setIsChair] = useState<boolean>(() => sessionStorage.getItem(CHAIR_KEY) === '1');

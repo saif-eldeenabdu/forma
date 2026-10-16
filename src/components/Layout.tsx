@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Activity, BookOpen, Globe2, Landmark, Lock, Repeat, ScrollText, Volume2, VolumeX, X, Gavel } from 'lucide-react';
 import { useNow, useStore, COUNTRY_NAMES } from '../lib/store';
 import { isMuted, setMuted } from '../lib/audio';
-import { Led } from './ui';
 import { CrisisOverlay, MotionFlash, ActiveMotionBanner } from './Overlays';
 
 const NAV = [
@@ -117,12 +116,11 @@ function Clock() {
 }
 
 export default function Layout() {
-  const { state, syncMode, syncNote, me, setMe, isChair, lock, toast: stateToast } = useStore();
+  const { state, me, setMe, isChair, lock, toast: stateToast } = useStore();
   const navigate = useNavigate();
   const [pinOpen, setPinOpen] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
   const cs = state.committeeState;
-  const live = syncMode === 'FIREBASE';
   const ledger = state.trades
     .filter((t) => t.kind === 'BARTER' && t.status === 'APPROVED')
     .map((t, i) => `LEDGER #${String(i + 1).padStart(3, '0')} — ${t.from} ⇄ ${t.to}: ${t.offer} FOR ${t.request}`);
@@ -187,12 +185,6 @@ export default function Layout() {
               </select>
             </div>
             <Clock />
-            <div className="flex items-center gap-2 border border-hairline px-2 py-1" title={syncNote || undefined}>
-              <Led gold={!live} />
-              <span className="tabular whitespace-nowrap text-[10px] uppercase tracking-[0.14em] text-ivory/90">
-                {live ? 'Firebase Sync: Live' : 'LOCAL BROADCAST ONLY (Open in another tab on this machine)'}
-              </span>
-            </div>
           </div>
         </div>
         {cs.currentMode !== 'NORMAL' && cs.activeCrisisBanner && (
