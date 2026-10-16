@@ -8,14 +8,14 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { createBackend, toDbForm, type Backend, type SyncMode } from './backend';
+import { createBackend, createLocalBackend, toDbForm, type Backend, type SyncMode } from './backend';
 import { createSeed } from './seed';
 import { normalize } from './normalize';
 import { deriveTimer } from './timer';
 import { applyValueChange, clamp, PEGGED } from './markets';
 import { uid } from './motions';
 import { byName, COUNTRY_NAMES } from '../data/countries';
-import { BRICS_PAY_ADOPTION_BOOST, USD_SURCHARGE_PCT, defaultStock, grainType } from '../data/grain';
+import { BRICS_PAY_ADOPTION_BOOST, USD_SURCHARGE_PCT, defaultStock, fmtMT, grainType } from '../data/grain';
 import type {
   CrisisAlert,
   GrainCommodity,
@@ -90,6 +90,8 @@ export interface Actions {
   // grain
   submitGrain(g: { importer: string; exporter: string; commodity: GrainCommodity; quantityMT: number; settlement: GrainSettlement }): void;
   resolveGrain(id: string, approved: boolean): void;
+  // toast
+  showToast(msg: string): void;
 }
 
 interface Ctx {
@@ -104,6 +106,7 @@ interface Ctx {
   unlock: (pin: string) => boolean;
   lock: () => void;
   actions: Actions;
+  toast: string | null;
 }
 
 const StoreCtx = createContext<Ctx | null>(null);
@@ -114,10 +117,18 @@ const CHAIR_KEY = 'brics-net:chair';
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<RootState>(() => normalize(null));
   const [ready, setReady] = useState(false);
-  const [backend, setBackend] = useState<Backend | null>(null);
+  const [backend, setBackend] = useState<Backend>(() => createLocalBackend());
   const [syncNote, setSyncNote] = useState('');
   const [me, setMeState] = useState<string>(() => localStorage.getItem(ME_KEY) ?? '');
   const [isChair, setIsChair] = useState<boolean>(() => sessionStorage.getItem(CHAIR_KEY) === '1');
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 3800);
+  }, []);
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -129,6 +140,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let unsub: (() => void) | undefined;
     let unsubOffset: (() => void) | undefined;
     let cancelled = false;
+
+    // Immediately subscribe to current local backend so state is active on frame 0
+    unsub = backend.subscribe((raw) => {
+      setState(normalize(raw));
+      setReady(true);
+    });
+
     (async () => {
       const { backend: b, fallbackReason } = await createBackend();
       if (cancelled) return;
@@ -136,13 +154,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       unsubOffset = b.onOffset((o) => {
         offsetRef.current = o;
       });
-      await b.seedIfEmpty(toDbForm(createSeed()));
-      if (cancelled) return;
-      unsub = b.subscribe((raw) => {
-        setState(normalize(raw));
-        setReady(true);
-      });
-      setBackend(b);
+      if (b !== backend) {
+        unsub?.();
+        unsub = b.subscribe((raw) => {
+          setState(normalize(raw));
+          setReady(true);
+        });
+        setBackend(b);
+      }
     })();
     return () => {
       cancelled = true;
@@ -151,8 +170,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const actions = useMemo<Actions | null>(() => {
-    if (!backend) return null;
+  const actions = useMemo<Actions>(() => {
     const write = (u: Updates) => {
       void backend.update(u).catch((e) => console.error('[BRICS-NET] write failed', e));
     };
@@ -212,9 +230,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       startTimer() {
         const f = frozen();
         write(timerPatch({ ...f, isRunning: true }));
+        showToast('TIMER STARTED');
       },
       pauseTimer() {
         write(timerPatch({ ...frozen(), isRunning: false }));
+        showToast('TIMER PAUSED');
       },
       resetTimer() {
         const t = S().committeeState.timer;
@@ -227,6 +247,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             yieldedFrom: null,
           }),
         );
+        showToast('TIMER RESET');
       },
       setTimerType(type) {
         const t = S().committeeState.timer;
@@ -240,6 +261,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             yieldedFrom: null,
           }),
         );
+        showToast(`TIMER MODE: ${type === 'GSL' ? 'GSL' : type === 'MOD' ? 'MODERATED CAUCUS' : 'UNMODERATED CAUCUS'}`);
       },
       setTimerConfig({ speaker, caucus }) {
         const p: Record<string, unknown> = { isRunning: false };
@@ -252,6 +274,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           p.modRemainingSeconds = caucus;
         }
         write(timerPatch(p));
+        showToast('TIMER CONFIG UPDATED');
       },
       nextSpeaker() {
         const cs = S().committeeState;
@@ -267,9 +290,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }),
           'committeeState/gslQueue': queue,
         });
+        showToast(`SPEAKER ADVANCED: ${next}`);
       },
       setSpeaker(name) {
         write(timerPatch({ currentSpeaker: name, yieldTo: 'None', yieldedFrom: null }));
+        showToast(`SPEAKER SET: ${name}`);
       },
       yieldTime(kind, target) {
         const t = S().committeeState.timer;
@@ -293,10 +318,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addToQueue(name) {
         const q = S().committeeState.gslQueue;
         write({ 'committeeState/gslQueue': [...q, name] });
+        showToast(`GSL: Added ${name}`);
       },
       removeFromQueue(index) {
         const q = S().committeeState.gslQueue.filter((_, i) => i !== index);
         write({ 'committeeState/gslQueue': q });
+        showToast('GSL: Removed from queue');
       },
       moveInQueue(index, dir) {
         const q = [...S().committeeState.gslQueue];
@@ -319,9 +346,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           [`committeeState/gslRequests/${id}`]: null,
           'committeeState/gslQueue': cs.gslQueue.includes(r.country) ? cs.gslQueue : [...cs.gslQueue, r.country],
         });
+        showToast(`GSL REQUEST APPROVED: ${r.country}`);
       },
       dismissGslRequest(id) {
         write({ [`committeeState/gslRequests/${id}`]: null });
+        showToast('GSL REQUEST DISMISSED');
       },
 
       submitMotion(m) {
@@ -331,6 +360,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       projectMotion(id) {
         write({ 'committeeState/projectedMotionId': id, [`motions/${id}/status`]: 'PROJECTED' });
+        showToast('MOTION PROJECTED TO FLOOR');
       },
       passMotion(id) {
         const m = S().motions.find((x) => x.id === id);
@@ -370,17 +400,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           );
         }
         write(u);
+        showToast(`MOTION PASSED: ${m.type} (${m.delegation})`);
       },
       failMotion(id) {
+        const m = S().motions.find((x) => x.id === id);
         const u: Updates = { [`motions/${id}/status`]: 'FAILED' };
         if (S().committeeState.projectedMotionId === id) u['committeeState/projectedMotionId'] = '';
         write(u);
+        showToast(`MOTION DISMISSED: ${m ? m.type : 'Motion'}`);
       },
 
       shiftCurrency(code, valuePct) {
         const cur = S().currencies[code];
         if (!cur) return;
         write({ [`currencies/${code}`]: applyValueChange(cur, valuePct) });
+        showToast(`CURRENCY SHIFT: ${code} ${valuePct > 0 ? '+' : ''}${valuePct.toFixed(1)}%`);
       },
       rally() {
         const cs = S().committeeState;
@@ -391,20 +425,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           'committeeState/bricsPayAdoption': clamp(cs.bricsPayAdoption + 2, 0, 100),
           ...news('MARKETS: De-dollarization rally lifts BRICS currencies across the board.'),
         });
+        showToast('MARKET RALLY: De-dollarization surge executed');
       },
       setMacro(patch) {
         const u: Updates = {};
         for (const [k, v] of Object.entries(patch)) u[`committeeState/${k}`] = v;
         write(u);
+        showToast('MACRO INDICATORS UPDATED');
       },
 
       addNews(text) {
         const t = text.trim();
         if (!t) return;
         write(news(t));
+        showToast(`WIRE PUBLISHED: ${t}`);
       },
       removeNews(index) {
         write({ newsTicker: S().newsTicker.filter((_, i) => i !== index) });
+        showToast('WIRE HEADLINE REMOVED');
       },
 
       submitTrade(t) {
@@ -425,10 +463,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           u['committeeState/bricsPayAdoption'] = clamp(Math.round((cs.bricsPayAdoption + 0.4) * 10) / 10, 0, 100);
         }
         write(u);
+        showToast(approved ? `TRADE APPROVED: ${tr.from} ⇄ ${tr.to}` : `TRADE REJECTED: ${tr.from} ⇄ ${tr.to}`);
       },
       submitDirective(d) {
         const id = uid();
         write({ [`directives/${id}`]: { id, ...d, createdAt: now() } });
+        showToast(`DIRECTIVE LODGED: ${d.subject}`);
       },
 
       triggerBarter() {
@@ -442,8 +482,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             title: 'CRITICAL FAILURE: GLOBAL DIGITAL BANKING & SWIFT OFFLINE.',
             body: 'FIAT CURRENCIES FROZEN. REVERTING TO SOVEREIGN COMMODITY BARTER PROTOCOL.',
           }),
-          ...news('CRITICAL: Global digital banking & SWIFT offline. Fiat frozen. Sovereign Commodity Barter Protocol active.'),
+          ...news('CRITICAL: Global digital banking & SWIFT offline. Sovereign Commodity Barter Protocol active.'),
         });
+        showToast('CRISIS TRIGGERED: Barter Protocol Activated');
       },
       triggerSwiftBlackout() {
         write({
@@ -457,37 +498,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }),
           ...news('ALERT: SWIFT messaging blackout. Money transfers suspended pending Chair review.'),
         });
+        showToast('CRISIS TRIGGERED: SWIFT Blackout Activated');
       },
       triggerBondDump() {
         const cs = S().committeeState;
         const u = applyAll((code) => {
-          if (code === 'SAR') return -1.2;
-          if (code === 'AED') return -1.0;
+          if (code === 'SAR') return -2.5;
+          if (code === 'AED') return -2.2;
           return Math.round(spread(code, 0.6, 1.8) * 10) / 10;
         });
         write({
           ...u,
           'committeeState/currentMode': 'BOND_DUMP' as Mode,
           'committeeState/activeCrisisBanner': 'US TREASURY BOND DUMP // $150B SOLD // MARKET VOLATILITY ELEVATED',
-          'committeeState/usdDominanceIndex': clamp(Math.round((cs.usdDominanceIndex - 4.2) * 10) / 10, 0, 100),
+          'committeeState/usdDominanceIndex': clamp(Math.round((cs.usdDominanceIndex - 3.5) * 10) / 10, 0, 100),
           'committeeState/bricsUnitConfidence': clamp(Math.round((cs.bricsUnitConfidence + 3) * 10) / 10, 0, 100),
-          'committeeState/pressure': { SAR: 'PEG PRESSURE', AED: 'PEG PRESSURE' },
+          'committeeState/pressure': { SAR: 'PEG PRESSURE (-2.5%)', AED: 'PEG PRESSURE (-2.2%)' },
           'committeeState/crisisAlert': alertOf({
             kind: 'BOND_DUMP',
             severity: 'CRITICAL',
             title: 'BREAKING: UNNAMED BRICS MEMBER DUMPS $150 BILLION IN US TREASURY BONDS OVERNIGHT',
-            body: 'Global market volatility spikes. The USD index falls sharply. Oil-pegged currencies (SAR, AED) face emergency pressure.',
+            body: 'Global market volatility spikes. The USD index falls 3.5%. Oil-pegged currencies (SAR, AED) face emergency pressure.',
           }),
           ...news('BREAKING: $150B US Treasury dump traced to an unnamed BRICS member. USD slides; SAR/AED under pressure.'),
         });
+        showToast('CRISIS TRIGGERED: $150B Treasury Bond Dump Executed');
       },
       imposeSanctions(country) {
         const c = byName(country);
         if (!c) return;
         const cur = S().currencies[c.currencyCode];
         const t = now();
+        const currentSanctioned = S().committeeState.sanctionedCountries ?? [];
+        const nextSanctioned = Array.from(new Set([...currentSanctioned, country]));
         const u: Updates = {
           [`committeeState/sanctions/${country}`]: { at: t, until: t + 10 * 60 * 1000 },
+          'committeeState/sanctionedCountries': nextSanctioned,
           'committeeState/crisisAlert': alertOf({
             kind: 'SANCTION',
             severity: 'CRITICAL',
@@ -498,16 +544,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         };
         if (cur) u[`currencies/${c.currencyCode}`] = applyValueChange(cur, -12);
         write(u);
+        showToast(`SANCTIONS IMPOSED: Secondary sanctions on ${country}`);
       },
       liftSanctions(country) {
-        if (country) write({ [`committeeState/sanctions/${country}`]: null });
-        else write({ 'committeeState/sanctions': null });
+        if (country) {
+          const currentSanctioned = S().committeeState.sanctionedCountries ?? [];
+          write({
+            [`committeeState/sanctions/${country}`]: null,
+            'committeeState/sanctionedCountries': currentSanctioned.filter((x) => x !== country),
+          });
+          showToast(`SANCTIONS LIFTED: Sanctions removed on ${country}`);
+        } else {
+          write({
+            'committeeState/sanctions': null,
+            'committeeState/sanctionedCountries': [],
+          });
+          showToast('SANCTIONS LIFTED: All restrictions cleared');
+        }
       },
       customCrisis({ title, body, severity }) {
+        const t = title.trim();
+        if (!t) return;
         write({
-          'committeeState/crisisAlert': alertOf({ kind: 'CUSTOM', severity, title, body }),
-          ...news(`${severity}: ${title}`),
+          'committeeState/crisisAlert': alertOf({
+            kind: 'CUSTOM',
+            severity,
+            title: t,
+            body: body.trim() || 'Urgent committee directive issued by the Chair.',
+          }),
+          ...news(`BREAKING [${severity}]: ${t}`),
         });
+        showToast(`CRISIS BROADCAST BLASTED: ${t}`);
       },
       executeAssetFreeze(country, amountB) {
         const c = byName(country);
@@ -516,7 +583,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const u: Updates = {
           'committeeState/currentMode': 'ASSET_FREEZE' as Mode,
           'committeeState/activeCrisisBanner': `ASSETS FROZEN // ${country.toUpperCase()} // BRICS CLEAR RATIFICATION REQUIRED`,
-          'committeeState/assetFreeze': { country, amountB, at: now() },
+          'committeeState/assetFreeze': { country, amountB, at: now(), signers: [] },
           'committeeState/crisisAlert': alertOf({
             kind: 'FREEZE',
             severity: 'CRITICAL',
@@ -527,14 +594,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         };
         if (cur) u[`currencies/${c.currencyCode}`] = applyValueChange(cur, -8.5);
         write(u);
+        showToast(`ASSET FREEZE: Western depositories frozen for ${country} ($${amountB}B)`);
       },
       cosignBricsClear(country) {
         const cs = S().committeeState;
         if (!cs.assetFreeze || cs.currentMode !== 'ASSET_FREEZE') return;
         if (cs.assetFreeze.signers.includes(country)) return;
         const count = cs.assetFreeze.signers.length + 1;
-        if (count >= BRICS_CLEAR_QUORUM) a.ratifyBricsClear();
-        else write({ [`committeeState/assetFreeze/signers/${country}`]: true });
+        if (count >= BRICS_CLEAR_QUORUM) {
+          a.ratifyBricsClear();
+        } else {
+          write({ [`committeeState/assetFreeze/signers/${country}`]: true });
+          showToast(`BRICS CLEAR: Co-signed by ${country} (${count}/${BRICS_CLEAR_QUORUM})`);
+        }
       },
       ratifyBricsClear() {
         const cs = S().committeeState;
@@ -549,10 +621,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           'committeeState/bricsUnitConfidence': clamp(Math.round((cs.bricsUnitConfidence + 5) * 10) / 10, 0, 100),
           ...news('BREAKING: BRICS Clear sovereign depository formally deployed. Member foreign reserves insulated from G7 sanctions.'),
         });
+        showToast('RATIFIED: BRICS Clear Multilateral Depository active');
       },
       setSuezToll(currency) {
         const u = suezUpdates(currency);
-        if (u) write(u);
+        if (u) {
+          write(u);
+          showToast(`SUEZ CANAL: Transit dues switched to ${currency === 'BRICS_PAY' ? 'BRICS Pay / EGP' : 'USD'}`);
+        }
       },
       submitSuezDirective(currency) {
         const id = uid();
@@ -570,6 +646,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             status: 'PENDING',
           },
         });
+        showToast('SUEZ DIRECTIVE: Submitted to Chair');
       },
       resolveDirective(id, approve) {
         const d = S().directives.find((x) => x.id === id);
@@ -580,6 +657,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (s) u = { ...u, ...s };
         }
         write(u);
+        showToast(approve ? `DIRECTIVE APPROVED: ${d.subject}` : `DIRECTIVE DISMISSED: ${d.subject}`);
       },
       submitGrain(g) {
         const id = uid();
@@ -592,6 +670,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             createdAt: now(),
           },
         });
+        showToast(`GRAIN REQUEST: ${g.importer} ⇄ ${g.exporter}`);
       },
       resolveGrain(id, approved) {
         const g = S().grainContracts.find((x) => x.id === id);
@@ -620,6 +699,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }
         }
         write(u);
+        showToast(approved ? `GRAIN CLEARED: ${fmtMT(g.quantityMT)} ${g.commodity}` : 'GRAIN REQUEST REJECTED');
       },
       resetMode() {
         write({
@@ -628,7 +708,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           'committeeState/pressure': null,
           'committeeState/crisisAlert': null,
           'committeeState/assetFreeze': null,
+          'committeeState/sanctions': null,
+          'committeeState/sanctionedCountries': [],
         });
+        showToast('OPERATIONS RESTORED: Committee returned to NORMAL mode');
       },
       resetAll() {
         const seed = toDbForm(createSeed(now()));
@@ -642,10 +725,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           grainStockpiles: seed.grainStockpiles,
           grainContracts: null,
         });
+        showToast('DATA RESET: All state restored to initial seed');
+      },
+      showToast(msg) {
+        showToast(msg);
       },
     };
     return a;
-  }, [backend, now]);
+  }, [backend, now, showToast]);
 
   const setMe = useCallback((name: string) => {
     localStorage.setItem(ME_KEY, name);
@@ -664,8 +751,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setIsChair(false);
   }, []);
 
-  const noop = useMemo(() => new Proxy({}, { get: () => () => undefined }) as Actions, []);
-
   const value: Ctx = {
     state,
     ready,
@@ -677,7 +762,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     isChair,
     unlock,
     lock,
-    actions: actions ?? noop,
+    actions,
+    toast,
   };
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;

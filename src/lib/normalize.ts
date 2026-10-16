@@ -32,6 +32,11 @@ export function normalize(raw: unknown): RootState {
     activeCrisisBanner: cs.activeCrisisBanner ?? '',
     crisisAlert: cs.crisisAlert ?? null,
     sanctions: cs.sanctions ?? {},
+    sanctionedCountries: Array.isArray(cs.sanctionedCountries)
+      ? cs.sanctionedCountries
+      : typeof cs.sanctions === 'object' && cs.sanctions
+      ? Object.keys(cs.sanctions)
+      : [],
     pressure: cs.pressure ?? {},
     suezTollCurrency: cs.suezTollCurrency === 'BRICS_PAY' ? 'BRICS_PAY' : 'USD',
     assetFreeze: rawFreeze

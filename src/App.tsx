@@ -25,6 +25,7 @@ export default function App() {
               <Route path="dossiers" element={<Dossiers />} />
               <Route path="briefing" element={<Briefing />} />
               <Route path="admin" element={<Admin />} />
+              <Route path="chair" element={<Admin />} />
               <Route path="*" element={<Dashboard />} />
             </Route>
           </Routes>

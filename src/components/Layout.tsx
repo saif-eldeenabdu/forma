@@ -117,7 +117,7 @@ function Clock() {
 }
 
 export default function Layout() {
-  const { state, syncMode, syncNote, me, setMe, isChair, lock } = useStore();
+  const { state, syncMode, syncNote, me, setMe, isChair, lock, toast: stateToast } = useStore();
   const navigate = useNavigate();
   const [pinOpen, setPinOpen] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
@@ -190,7 +190,7 @@ export default function Layout() {
             <div className="flex items-center gap-2 border border-hairline px-2 py-1" title={syncNote || undefined}>
               <Led gold={!live} />
               <span className="tabular whitespace-nowrap text-[10px] uppercase tracking-[0.14em] text-ivory/90">
-                {live ? 'Firebase Sync: Live' : 'Local Sync: Broadcast'}
+                {live ? 'Firebase Sync: Live' : 'LOCAL BROADCAST ONLY (Open in another tab on this machine)'}
               </span>
             </div>
           </div>
@@ -203,6 +203,23 @@ export default function Layout() {
         <Ticker items={state.newsTicker} label="Wire" />
         {cs.currentMode === 'BARTER_CRISIS' && <Ticker items={ledger.length ? ledger : ['PHYSICAL BARTER LEDGER OPEN — NO TRADES RECORDED YET']} label="Barter Ledger" tone="crimson" speed={10} />}
       </header>
+
+      <AnimatePresence>
+        {stateToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -16, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-14 right-4 z-[100] flex items-center gap-3 border border-gold bg-basalt px-4 py-3 shadow-[0_4px_24px_rgba(0,0,0,0.6)] backdrop-blur"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="h-2 w-2 rounded-full bg-gold animate-pulse" />
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-ivory">{stateToast}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <ActiveMotionBanner />
 

@@ -11,14 +11,14 @@ import { Field, PageHeader, Panel, fmtSecondsLabel } from '../components/ui';
 import { TimerPanel } from '../components/Timer';
 import { motionLine } from '../components/Overlays';
 
-type Tab = 'timer' | 'motions' | 'markets' | 'news' | 'trades' | 'swan';
+type Tab = 'timer' | 'motions' | 'markets' | 'news' | 'trades' | 'crisis';
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'timer', label: 'Timers & GSL', icon: <Play size={13} /> },
   { id: 'motions', label: 'Motions', icon: <Gavel size={13} /> },
-  { id: 'markets', label: 'Markets', icon: <TrendingUp size={13} /> },
-  { id: 'news', label: 'News Ticker', icon: <Megaphone size={13} /> },
+  { id: 'markets', label: 'Markets & Currencies', icon: <TrendingUp size={13} /> },
+  { id: 'news', label: 'News & Intel', icon: <Megaphone size={13} /> },
   { id: 'trades', label: 'Trades & Directives', icon: <Landmark size={13} /> },
-  { id: 'swan', label: 'Big Bullshit Area', icon: <Skull size={13} /> },
+  { id: 'crisis', label: 'Big Bullshit Area', icon: <Skull size={13} /> },
 ];
 
 /* ------------------------------ PIN gate ------------------------------ */
@@ -399,17 +399,19 @@ function SwanTab() {
   const [body, setBody] = useState('');
   const [sev, setSev] = useState<Severity>('CRITICAL');
   const [confirmReset, setConfirmReset] = useState(false);
-  const sanctioned = Object.keys(cs.sanctions);
+  const sanctioned = Array.from(
+    new Set([...Object.keys(cs.sanctions || {}), ...(cs.sanctionedCountries || [])]),
+  );
 
   return (
     <div className="space-y-3">
-      <div className={`flex flex-wrap items-center justify-between gap-3 border px-4 py-3 ${cs.currentMode === 'NORMAL' ? 'border-emerald/50 bg-emerald/5' : 'flash-border border-2 bg-crimson/10'}`}>
+      <div className={`flex flex-wrap items-center justify-between gap-3 border px-4 py-3 ${cs.currentMode === 'NORMAL' && !cs.crisisAlert && sanctioned.length === 0 ? 'border-emerald/50 bg-emerald/5' : 'flash-border border-2 bg-crimson/10'}`}>
         <div className="flex items-center gap-3">
-          <AlertTriangle size={18} className={cs.currentMode === 'NORMAL' ? 'text-emerald' : 'text-crimson'} />
+          <AlertTriangle size={18} className={cs.currentMode === 'NORMAL' && !cs.crisisAlert && sanctioned.length === 0 ? 'text-emerald' : 'text-crimson'} />
           <span className="label">Committee mode</span>
-          <span className={`font-serif text-2xl ${cs.currentMode === 'NORMAL' ? 'text-emerald' : 'text-crimson'}`}>{cs.currentMode.replace('_', ' ')}</span>
+          <span className={`font-serif text-2xl ${cs.currentMode === 'NORMAL' && !cs.crisisAlert && sanctioned.length === 0 ? 'text-emerald' : 'text-crimson'}`}>{cs.currentMode.replace('_', ' ')}</span>
         </div>
-        <button className="btn btn-emerald" onClick={actions.resetMode} disabled={cs.currentMode === 'NORMAL' && !cs.crisisAlert}><RotateCcw size={13} /> Restore Normal Operations</button>
+        <button className="btn btn-emerald" onClick={actions.resetMode} disabled={cs.currentMode === 'NORMAL' && !cs.crisisAlert && sanctioned.length === 0}><RotateCcw size={13} /> Restore Normal Operations</button>
       </div>
 
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 2xl:grid-cols-4">
@@ -429,13 +431,15 @@ function SwanTab() {
             </select>
             <button className="btn btn-crimson shrink-0" onClick={() => actions.imposeSanctions(country)}>Impose Secondary Sanctions</button>
           </div>
-          {sanctioned.length > 0 && (
+          {sanctioned.length > 0 ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {sanctioned.map((c) => (
                 <button key={c} className="btn !py-1" onClick={() => actions.liftSanctions(c)}>Lift {c} <X size={11} /></button>
               ))}
-              <button className="btn btn-emerald !py-1" onClick={() => actions.liftSanctions()}>Lift all</button>
+              <button className="btn btn-emerald !py-1" onClick={() => actions.liftSanctions()}>Lift all sanctions</button>
             </div>
+          ) : (
+            <p className="mt-2 text-xs text-sage">No active sanctions.</p>
           )}
         </SwanCard>
 
@@ -503,7 +507,7 @@ function SwanTab() {
 
 /* ------------------------------ Page ------------------------------ */
 export default function Admin() {
-  const { isChair, state } = useStore();
+  const { isChair, state, toast } = useStore();
   const [tab, setTab] = useState<Tab>('timer');
   if (!isChair) return <PinGate />;
   const pendingMotions = state.motions.filter((m) => m.status === 'PENDING').length;
@@ -518,12 +522,18 @@ export default function Admin() {
       <PageHeader kicker="Chair // God Mode" title="Chair Control Center">
         <span className="label">Mode: {state.committeeState.currentMode.replace('_', ' ')}</span>
       </PageHeader>
+      {toast && (
+        <div className="mb-3 flex items-center gap-2 border border-gold/40 bg-gold/10 px-3 py-2 font-mono text-xs text-gold">
+          <span className="h-2 w-2 rounded-full bg-gold animate-pulse" />
+          <span>LATEST ACTION // {toast}</span>
+        </div>
+      )}
       <div role="tablist" className="mb-3 flex gap-px overflow-x-auto border border-hairline bg-hairline">
         {TABS.map((x) => {
           const n = badge(x.id);
           return (
             <button key={x.id} role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)}
-              className={`flex shrink-0 items-center gap-2 px-4 py-3 font-mono text-[11px] uppercase tracking-[0.12em] ${tab === x.id ? (x.id === 'swan' ? 'bg-crimson text-ivory' : 'bg-gold text-obsidian') : x.id === 'swan' ? 'bg-charcoal text-crimson' : 'bg-charcoal text-sage hover:text-ivory'}`}>
+              className={`flex shrink-0 items-center gap-2 px-4 py-3 font-mono text-[11px] uppercase tracking-[0.12em] ${tab === x.id ? (x.id === 'crisis' ? 'bg-crimson text-ivory' : 'bg-gold text-obsidian') : x.id === 'crisis' ? 'bg-charcoal text-crimson' : 'bg-charcoal text-sage hover:text-ivory'}`}>
               {x.icon}
               {x.label}
               {n > 0 && <span className="tabular grid h-4 min-w-4 place-items-center bg-crimson px-1 text-[9px] text-ivory">{n}</span>}
@@ -536,7 +546,17 @@ export default function Admin() {
       {tab === 'markets' && <MarketsTab />}
       {tab === 'news' && <NewsTab />}
       {tab === 'trades' && <TradesTab />}
-      {tab === 'swan' && <SwanTab />}
+      {tab === 'crisis' && <SwanTab />}
     </div>
   );
 }
+
+export {
+  TimerTab as TimersGsl,
+  MotionsTab as Motions,
+  MarketsTab as Markets,
+  NewsTab as NewsTicker,
+  TradesTab as TradesDirectives,
+  SwanTab as BigBullshitArea,
+  SwanTab as BlackSwan,
+};

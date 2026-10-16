@@ -92,10 +92,72 @@ describe('backend helpers', () => {
     expect(s.committeeState.gslQueue).toEqual([]);
     expect(Object.keys(s.currencies)).toHaveLength(11);
   });
+  it('normalizes sanctionedCountries as string array even if missing or null in raw DB', () => {
+    const raw = toDbForm(createSeed()) as any;
+    delete raw.committeeState.sanctionedCountries;
+    const s1 = normalize(raw);
+    expect(s1.committeeState.sanctionedCountries).toEqual([]);
+
+    raw.committeeState.sanctionedCountries = ['Russia', 'Iran'];
+    const s2 = normalize(raw);
+    expect(s2.committeeState.sanctionedCountries).toEqual(['Russia', 'Iran']);
+  });
   it('toArray handles null / object / array', () => {
     expect(toArray(null)).toEqual([]);
     expect(toArray({ 0: 'a', 1: 'b' })).toEqual(['a', 'b']);
     expect(toArray(['a', undefined, 'b'])).toEqual(['a', 'b']);
+  });
+});
+
+describe('crisis and sanctions state updates', () => {
+  it('applies barter crisis updates correctly to DB form', () => {
+    const root = toDbForm(createSeed()) as any;
+    applyUpdates(root, {
+      'committeeState/currentMode': 'BARTER_CRISIS',
+      'committeeState/activeCrisisBanner': 'GLOBAL BANKING OFFLINE // FIAT FROZEN',
+    });
+    expect(root.committeeState.currentMode).toBe('BARTER_CRISIS');
+    expect(root.committeeState.activeCrisisBanner).toContain('GLOBAL BANKING OFFLINE');
+  });
+
+  it('handles sanction additions and removals correctly', () => {
+    const root = toDbForm(createSeed()) as any;
+    applyUpdates(root, {
+      'committeeState/sanctions/Iran': { at: 100, until: 700 },
+      'committeeState/sanctionedCountries': ['Iran'],
+    });
+    expect(root.committeeState.sanctions.Iran.until).toBe(700);
+    expect(root.committeeState.sanctionedCountries).toEqual(['Iran']);
+
+    // Lift sanctions
+    applyUpdates(root, {
+      'committeeState/sanctions/Iran': null,
+      'committeeState/sanctionedCountries': [],
+    });
+    expect(root.committeeState.sanctions.Iran).toBeUndefined();
+    expect(root.committeeState.sanctionedCountries).toEqual([]);
+  });
+
+  it('handles resetMode resetting all crisis fields', () => {
+    const root = toDbForm(createSeed()) as any;
+    applyUpdates(root, {
+      'committeeState/currentMode': 'BARTER_CRISIS',
+      'committeeState/activeCrisisBanner': 'CRISIS',
+      'committeeState/sanctionedCountries': ['Russia'],
+      'committeeState/crisisAlert': { id: 'alert-1', kind: 'BARTER' },
+    });
+    applyUpdates(root, {
+      'committeeState/currentMode': 'NORMAL',
+      'committeeState/activeCrisisBanner': '',
+      'committeeState/crisisAlert': null,
+      'committeeState/sanctions': null,
+      'committeeState/sanctionedCountries': [],
+    });
+    expect(root.committeeState.currentMode).toBe('NORMAL');
+    expect(root.committeeState.activeCrisisBanner).toBe('');
+    expect(root.committeeState.crisisAlert).toBeUndefined();
+    expect(root.committeeState.sanctions).toBeUndefined();
+    expect(root.committeeState.sanctionedCountries).toEqual([]);
   });
 });
 
@@ -111,3 +173,4 @@ describe('applyValueChange', () => {
     expect(c.rateToUSD).toBe(100);
   });
 });
+

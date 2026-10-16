@@ -16,7 +16,7 @@ function MacroBar() {
   const cs = state.committeeState;
   const delta = cs.usdDominanceIndex - BASELINE_USD;
   const msgs = Math.round(cs.bricsPayAdoption * 444.4);
-  const sanctioned = Object.keys(cs.sanctions).length;
+  const sanctioned = new Set([...Object.keys(cs.sanctions || {}), ...(cs.sanctionedCountries || [])]).size;
   const modeColor = cs.currentMode === 'NORMAL' ? 'text-emerald' : 'text-crimson';
 
   return (
@@ -108,7 +108,7 @@ function ExchangeMatrix({ selected, toggle }: { selected: string[]; toggle: (cod
         <tbody>
           {Object.entries(state.currencies).map(([code, cur]) => {
             const country = byCurrency(code);
-            const sanction = country ? cs.sanctions[country.name] : undefined;
+            const sanction = country ? (cs.sanctions[country.name] || cs.sanctionedCountries?.includes(country.name)) : undefined;
             const pressure = cs.pressure[code];
             const up = cur.change24h >= 0;
             const color = up ? '#10B981' : '#E11D48';
@@ -217,13 +217,14 @@ function Roster() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 [&>*]:border-b [&>*]:border-r [&>*]:border-hairline">
         {COUNTRIES.map((c) => {
           const s = cs.sanctions[c.name];
+          const isSanctioned = !!s || !!cs.sanctionedCountries?.includes(c.name);
           const speaking = cs.timer.currentSpeaker === c.name && cs.timer.type !== 'UNMOD';
           const left = s ? Math.max(0, s.until - tick) / 1000 : 0;
           return (
             <Link
               key={c.name}
               to="/dossiers"
-              className={`relative block p-3 transition-colors hover:bg-charcoal ${s ? 'bg-crimson/10' : ''}`}
+              className={`relative block p-3 transition-colors hover:bg-charcoal ${isSanctioned ? 'bg-crimson/15 border border-crimson/40' : ''}`}
             >
               <div className="flex items-center justify-between">
                 <span className="tabular text-[11px] text-sage">{c.code}</span>
@@ -231,10 +232,10 @@ function Roster() {
               </div>
               <p className="mt-1 font-serif text-lg leading-tight">{c.short}</p>
               <div className="mt-2 min-h-[22px]">
-                {s ? (
+                {isSanctioned ? (
                   <>
                     <span className="stamp">Sanctioned // SWIFT cutoff</span>
-                    <p className="tabular mt-1 text-[10px] text-crimson">{left > 0 ? `BAIL-OUT WINDOW ${fmtClock(left)}` : 'BAIL-OUT WINDOW CLOSED'}</p>
+                    {s && <p className="tabular mt-1 text-[10px] text-crimson">{left > 0 ? `BAIL-OUT WINDOW ${fmtClock(left)}` : 'BAIL-OUT WINDOW CLOSED'}</p>}
                   </>
                 ) : cs.assetFreeze?.country === c.name ? (
                   <span className="stamp">Assets frozen // Clearing suspended</span>
@@ -253,10 +254,28 @@ function Roster() {
 }
 
 export default function Dashboard() {
+  const { state } = useStore();
+  const cs = state.committeeState;
+  const isBarterCrisis = cs.currentMode === 'BARTER_CRISIS';
   const [selected, setSelected] = useState<string[]>(['BRL', 'CNY', 'INR', 'RUB']);
   const toggle = (code: string) => setSelected((s) => (s.includes(code) ? s.filter((x) => x !== code) : [...s, code]));
+
   return (
-    <div className="space-y-3">
+    <div className={`space-y-3 transition-all duration-500 ${isBarterCrisis ? 'p-3 md:p-5 border-2 border-crimson flash-border bg-crimson/[0.08] shadow-[0_0_80px_rgba(225,29,72,0.35)]' : ''}`}>
+      {isBarterCrisis && (
+        <div className="flash-border border-2 border-crimson bg-crimson/20 p-4 text-center">
+          <div className="flex items-center justify-center gap-3">
+            <span className="h-3 w-3 rounded-full bg-crimson animate-ping" />
+            <span className="font-serif text-xl sm:text-2xl font-bold uppercase tracking-widest text-crimson">
+              CRITICAL EMERGENCY // SOVEREIGN COMMODITY BARTER PROTOCOL ACTIVE
+            </span>
+            <span className="h-3 w-3 rounded-full bg-crimson animate-ping" />
+          </div>
+          <p className="mt-1 font-mono text-xs text-gold uppercase tracking-wider">
+            GLOBAL BANKING OFFLINE // FIAT TRANSFERS FROZEN // DELEGATES MUST USE PHYSICAL BARTER DESK
+          </p>
+        </div>
+      )}
       <FreezeBanner />
       <MacroBar />
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">

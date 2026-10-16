@@ -28,6 +28,7 @@ export function createSeed(now = Date.now()): RootState {
       projectedMotionId: '',
       crisisAlert: null,
       sanctions: {},
+      sanctionedCountries: [],
       pressure: {},
       suezTollCurrency: 'USD',
       assetFreeze: null,

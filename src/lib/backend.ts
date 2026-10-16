@@ -145,18 +145,53 @@ export async function createFirebaseBackend(env: FirebaseEnv): Promise<Backend> 
   const app = initializeApp(env as Record<string, string>);
   const database = db.getDatabase(app);
   const root = db.ref(database);
+  const local = createLocalBackend();
 
   return {
     mode: 'FIREBASE',
     subscribe(cb) {
-      return db.onValue(root, (snap) => cb(snap.val()));
+      const unsubLocal = local.subscribe(cb);
+      const unsubFirebase = db.onValue(
+        root,
+        (snap) => {
+          const val = snap.val();
+          if (val) {
+            cb(val);
+            try {
+              localStorage.setItem('brics-net:state:v1', JSON.stringify(val));
+            } catch {
+              // ignore
+            }
+          }
+        },
+        (err) => {
+          console.warn('[BRICS-NET] Firebase onValue warning:', err);
+        },
+      );
+      return () => {
+        unsubLocal();
+        unsubFirebase();
+      };
     },
     async update(updates) {
-      await db.update(root, updates);
+      await local.update(updates);
+      try {
+        await db.update(root, updates);
+      } catch (err) {
+        console.warn('[BRICS-NET] Firebase update failed (local sync active):', err);
+      }
     },
     async seedIfEmpty(seed) {
-      const snap = await db.get(db.ref(database, 'committeeState'));
-      if (!snap.exists()) await db.set(root, seed);
+      try {
+        const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500));
+        const snap = await Promise.race([db.get(db.ref(database, 'committeeState')), timeout]);
+        if (!snap.exists()) {
+          await db.set(root, seed);
+        }
+      } catch (err) {
+        console.warn('[BRICS-NET] Firebase seed check timed out or failed:', err);
+        await local.seedIfEmpty(seed);
+      }
     },
     onOffset(cb) {
       return db.onValue(db.ref(database, '.info/serverTimeOffset'), (s) => cb(Number(s.val()) || 0));
@@ -166,13 +201,23 @@ export async function createFirebaseBackend(env: FirebaseEnv): Promise<Backend> 
 
 export async function createBackend(): Promise<{ backend: Backend; fallbackReason?: string }> {
   const env = readFirebaseEnv();
+  const fallbackMsg = 'LOCAL BROADCAST ONLY (Open in another tab on this machine)';
   if (isFirebaseConfigured(env)) {
     try {
-      return { backend: await createFirebaseBackend(env) };
+      const fbBackend = await createFirebaseBackend(env);
+      // Quick probe to verify RTDB is live (e.g. not 404 or offline)
+      const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Firebase connection timed out')), 2500));
+      await Promise.race([fbBackend.seedIfEmpty(toDbForm(createSeed())), timeout]);
+      return { backend: fbBackend };
     } catch (err) {
-      console.error('[BRICS-NET] Firebase init failed, using local sync:', err);
-      return { backend: createLocalBackend(), fallbackReason: 'FIREBASE INIT FAILED' };
+      console.warn('[BRICS-NET] Firebase RTDB unreachable or invalid credentials, falling back to local broadcast:', err);
+      const local = createLocalBackend();
+      await local.seedIfEmpty(toDbForm(createSeed()));
+      return { backend: local, fallbackReason: fallbackMsg };
     }
   }
-  return { backend: createLocalBackend(), fallbackReason: 'NO FIREBASE ENV' };
+  const local = createLocalBackend();
+  await local.seedIfEmpty(toDbForm(createSeed()));
+  return { backend: local, fallbackReason: fallbackMsg };
 }
+

@@ -60,6 +60,7 @@ export interface CommitteeState {
   projectedMotionId: string;
   crisisAlert: CrisisAlert | null;
   sanctions: Record<string, Sanction>;
+  sanctionedCountries: string[];
   pressure: Record<string, string>;
   suezTollCurrency: SuezCurrency;
   assetFreeze: AssetFreeze | null;
