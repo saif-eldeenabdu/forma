@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { ArrowLeftRight, Ban, Check, Hourglass, Lock, Send, X } from 'lucide-react';
 import { COUNTRY_NAMES, useStore } from '../lib/store';
+import { COUNTRIES, FULL_MEMBERS, PARTNERS } from '../data/countries';
 import { Field, PageHeader, Panel } from '../components/ui';
 import type { GrainCommodity, GrainSettlement, Trade, TradeKind } from '../lib/types';
 import { GRAIN_TYPES, USD_SURCHARGE_PCT, fmtMT, grainLedgerLine, grainType } from '../data/grain';
@@ -16,7 +17,7 @@ const BARTER_PRESETS: { unit: string; qty: number }[] = [
 const CUSTOM = '__custom__';
 
 const SWAP_UNITS: { unit: string; qty: number }[] = [
-  ...['BRL', 'RUB', 'INR', 'CNY', 'ZAR', 'EGP', 'ETB', 'IRR', 'SAR', 'AED', 'IDR'].map((c) => ({ unit: c, qty: 1000000 })),
+  ...COUNTRIES.map((c) => ({ unit: c.currencyCode, qty: 1000000 })),
   { unit: 'Metric Tons of Crude Oil', qty: 100000 },
   { unit: 'Troy Oz of Gold', qty: 50000 },
   { unit: 'Metric Tons of Wheat', qty: 200000 },
@@ -110,17 +111,31 @@ function TradeForm({ kind }: { kind: TradeKind }) {
         <Field label="Proposing delegation">
           <select className="field" value={sender} onChange={(e) => setFrom(e.target.value)}>
             <option value="">— select —</option>
-            {COUNTRY_NAMES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
+            <optgroup label="FULL BRICS MEMBERS (11)">
+              {FULL_MEMBERS.map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="BRICS PARTNERS (11)">
+              {PARTNERS.map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </optgroup>
           </select>
         </Field>
         <Field label="Counterparty">
           <select className="field" value={to} onChange={(e) => setTo(e.target.value)}>
             <option value="">— select —</option>
-            {COUNTRY_NAMES.filter((c) => c !== sender).map((c) => (
-              <option key={c}>{c}</option>
-            ))}
+            <optgroup label="FULL BRICS MEMBERS (11)">
+              {FULL_MEMBERS.filter((c) => c.name !== sender).map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="BRICS PARTNERS (11)">
+              {PARTNERS.filter((c) => c.name !== sender).map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </optgroup>
           </select>
         </Field>
       </div>
@@ -201,9 +216,16 @@ function GrainExchange({ locked }: { locked: boolean }) {
             <Field label="Importer">
               <select className="field" value={buyer} onChange={(e) => setImporter(e.target.value)}>
                 <option value="">— select —</option>
-                {COUNTRY_NAMES.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
+                <optgroup label="FULL BRICS MEMBERS (11)">
+                  {FULL_MEMBERS.map((c) => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="BRICS PARTNERS (11)">
+                  {PARTNERS.map((c) => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </optgroup>
               </select>
             </Field>
             <Field label="Exporter">

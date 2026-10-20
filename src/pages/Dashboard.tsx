@@ -9,7 +9,10 @@ import { GslPanel, TimerPanel } from '../components/Timer';
 import FreezeBanner from '../components/FreezeBanner';
 
 const BASELINE_USD = 58.4;
-const LINE_COLORS = ['#D4AF37', '#10B981', '#E11D48', '#F3F4F6', '#C08457', '#7FB069', '#8E9B94', '#E8C872', '#4F8F7A', '#D97B66', '#B8B8A8'];
+const LINE_COLORS = [
+  '#D4AF37', '#10B981', '#E11D48', '#F3F4F6', '#C08457', '#7FB069', '#8E9B94', '#E8C872', '#4F8F7A', '#D97B66', '#B8B8A8',
+  '#38BDF8', '#A78BFA', '#F472B6', '#FBBF24', '#34D399', '#818CF8', '#FB7185', '#2DD4BF', '#F97316', '#A3E635', '#60A5FA',
+];
 
 function MacroBar() {
   const { state } = useStore();
@@ -85,14 +88,48 @@ function MacroBar() {
   );
 }
 
-function ExchangeMatrix({ selected, toggle }: { selected: string[]; toggle: (code: string) => void }) {
+function ExchangeMatrix({ selected, toggle }: { selected: string[]; toggle: (c: string) => void }) {
   const { state } = useStore();
   const frozen = useFiatFrozen();
   const cs = state.committeeState;
+  const [tierFilter, setTierFilter] = useState<'MEMBERS' | 'ALL' | 'PARTNERS'>('MEMBERS');
+
+  const filteredEntries = Object.entries(state.currencies).filter(([code]) => {
+    if (tierFilter === 'ALL') return true;
+    const country = byCurrency(code);
+    if (!country) return tierFilter === 'MEMBERS';
+    if (tierFilter === 'MEMBERS') return country.tier === 'FULL BRICS MEMBER';
+    return country.tier === 'BRICS PARTNER';
+  });
+
   return (
     <Panel
       title="Currency War Matrix // 1 USD ="
-      right={<span className="label">{frozen ? 'Feed suspended' : 'Live'}</span>}
+      right={
+        <div className="flex items-center gap-2">
+          <div className="flex items-center border border-hairline bg-charcoal p-0.5 text-[10px] font-mono">
+            <button
+              onClick={() => setTierFilter('MEMBERS')}
+              className={`px-2 py-0.5 uppercase tracking-wider transition-colors ${tierFilter === 'MEMBERS' ? 'bg-gold text-obsidian font-bold' : 'text-sage hover:text-ivory'}`}
+            >
+              Full (11)
+            </button>
+            <button
+              onClick={() => setTierFilter('PARTNERS')}
+              className={`px-2 py-0.5 uppercase tracking-wider transition-colors ${tierFilter === 'PARTNERS' ? 'bg-emerald text-obsidian font-bold' : 'text-sage hover:text-ivory'}`}
+            >
+              Partners (11)
+            </button>
+            <button
+              onClick={() => setTierFilter('ALL')}
+              className={`px-2 py-0.5 uppercase tracking-wider transition-colors ${tierFilter === 'ALL' ? 'bg-ivory text-obsidian font-bold' : 'text-sage hover:text-ivory'}`}
+            >
+              All (22)
+            </button>
+          </div>
+          <span className="label">{frozen ? 'Feed suspended' : 'Live'}</span>
+        </div>
+      }
       bodyClass="p-0 overflow-x-auto"
     >
       <table className="w-full min-w-[520px] text-left">
@@ -106,7 +143,7 @@ function ExchangeMatrix({ selected, toggle }: { selected: string[]; toggle: (cod
           </tr>
         </thead>
         <tbody>
-          {Object.entries(state.currencies).map(([code, cur]) => {
+          {filteredEntries.map(([code, cur]) => {
             const country = byCurrency(code);
             const sanction = country ? (cs.sanctions[country.name] || cs.sanctionedCountries?.includes(country.name)) : undefined;
             const pressure = cs.pressure[code];
@@ -122,13 +159,24 @@ function ExchangeMatrix({ selected, toggle }: { selected: string[]; toggle: (cod
                     aria-pressed={on}
                     aria-label={`Toggle ${code} on chart`}
                     className="h-3.5 w-3.5 border"
-                    style={{ borderColor: LINE_COLORS[idx], background: on ? LINE_COLORS[idx] : 'transparent' }}
+                    style={{ borderColor: LINE_COLORS[idx % LINE_COLORS.length], background: on ? LINE_COLORS[idx % LINE_COLORS.length] : 'transparent' }}
                   />
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="tabular text-sm font-bold text-ivory">{code}</span>
                     <span className="text-xs text-sage">{cur.name}</span>
+                    {country && (
+                      <span
+                        className={`border px-1 py-0.2 font-mono text-[9px] uppercase ${
+                          country.tier === 'FULL BRICS MEMBER'
+                            ? 'border-gold/60 text-gold bg-gold/10'
+                            : 'border-emerald/60 text-emerald bg-emerald/10'
+                        }`}
+                      >
+                        {country.tier === 'FULL BRICS MEMBER' ? 'Full' : 'Partner'}
+                      </span>
+                    )}
                     {sanction && <span className="stamp">Sanctioned // SWIFT cutoff</span>}
                     {country && cs.assetFreeze?.country === country.name && <span className="stamp">Assets frozen // Clearing suspended</span>}
                     {pressure && !frozen && <span className="tabular border border-gold px-1 text-[9px] uppercase text-gold">{pressure}</span>}
@@ -149,7 +197,7 @@ function ExchangeMatrix({ selected, toggle }: { selected: string[]; toggle: (cod
         </tbody>
       </table>
       <p className="border-t border-hairline px-3 py-2 text-[11px] text-sage">
-        Rate = local units per 1 USD. Green = local currency appreciating. IRR shown as Market/1000; IDR as ×1000.
+        Rate = local units per 1 USD. Green = local currency appreciating. DZD = 134.50. IDR, UZS, VND, UGX shown as ×1000; NGN as ×100.
       </p>
     </Panel>
   );
@@ -197,7 +245,7 @@ function CompareChart({ selected }: { selected: string[] }) {
               {codes
                 .filter((c) => selected.includes(c))
                 .map((c) => (
-                  <Line key={c} type="monotone" dataKey={c} stroke={LINE_COLORS[codes.indexOf(c)]} strokeWidth={1.75} dot={false} isAnimationActive animationDuration={600} connectNulls />
+                  <Line key={c} type="monotone" dataKey={c} stroke={LINE_COLORS[codes.indexOf(c) % LINE_COLORS.length]} strokeWidth={1.75} dot={false} isAnimationActive animationDuration={600} connectNulls />
                 ))}
             </ComposedChart>
           </ResponsiveContainer>
@@ -212,14 +260,48 @@ function Roster() {
   const { state } = useStore();
   const tick = useNow(500);
   const cs = state.committeeState;
+  const [filter, setFilter] = useState<'ALL' | 'MEMBERS' | 'PARTNERS'>('ALL');
+
+  const filtered = COUNTRIES.filter((c) => {
+    if (filter === 'ALL') return true;
+    if (filter === 'MEMBERS') return c.tier === 'FULL BRICS MEMBER';
+    return c.tier === 'BRICS PARTNER';
+  });
+
   return (
-    <Panel title="Delegation Roster // 11 Full Members" bodyClass="p-0">
+    <Panel
+      title={`Delegation Roster // ${filter === 'ALL' ? '22 Delegations' : filter === 'MEMBERS' ? '11 Full Members' : '11 Partners'}`}
+      right={
+        <div className="flex items-center border border-hairline bg-charcoal p-0.5 text-[10px] font-mono">
+          <button
+            onClick={() => setFilter('ALL')}
+            className={`px-2 py-0.5 uppercase tracking-wider transition-colors ${filter === 'ALL' ? 'bg-ivory text-obsidian font-bold' : 'text-sage hover:text-ivory'}`}
+          >
+            All (22)
+          </button>
+          <button
+            onClick={() => setFilter('MEMBERS')}
+            className={`px-2 py-0.5 uppercase tracking-wider transition-colors ${filter === 'MEMBERS' ? 'bg-gold text-obsidian font-bold' : 'text-sage hover:text-ivory'}`}
+          >
+            Full (11)
+          </button>
+          <button
+            onClick={() => setFilter('PARTNERS')}
+            className={`px-2 py-0.5 uppercase tracking-wider transition-colors ${filter === 'PARTNERS' ? 'bg-emerald text-obsidian font-bold' : 'text-sage hover:text-ivory'}`}
+          >
+            Partners (11)
+          </button>
+        </div>
+      }
+      bodyClass="p-0"
+    >
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 [&>*]:border-b [&>*]:border-r [&>*]:border-hairline">
-        {COUNTRIES.map((c) => {
+        {filtered.map((c) => {
           const s = cs.sanctions[c.name];
           const isSanctioned = !!s || !!cs.sanctionedCountries?.includes(c.name);
           const speaking = cs.timer.currentSpeaker === c.name && cs.timer.type !== 'UNMOD';
           const left = s ? Math.max(0, s.until - tick) / 1000 : 0;
+          const isFull = c.tier === 'FULL BRICS MEMBER';
           return (
             <Link
               key={c.name}
@@ -228,7 +310,13 @@ function Roster() {
             >
               <div className="flex items-center justify-between">
                 <span className="tabular text-[11px] text-sage">{c.code}</span>
-                <span className="tabular text-[11px] text-gold">{c.currencyCode}</span>
+                <span
+                  className={`border px-1 py-0.2 font-mono text-[9px] uppercase tracking-wider ${
+                    isFull ? 'border-gold/60 text-gold bg-gold/10' : 'border-emerald/60 text-emerald bg-emerald/10'
+                  }`}
+                >
+                  {isFull ? 'Full Member' : 'Partner'}
+                </span>
               </div>
               <p className="mt-1 font-serif text-lg leading-tight">{c.short}</p>
               <div className="mt-2 min-h-[22px]">

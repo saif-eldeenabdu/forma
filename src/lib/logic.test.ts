@@ -90,7 +90,7 @@ describe('backend helpers', () => {
     const s = normalize(raw);
     expect(s.motions.map((x) => x.id)).toEqual(['a', 'b']);
     expect(s.committeeState.gslQueue).toEqual([]);
-    expect(Object.keys(s.currencies)).toHaveLength(11);
+    expect(Object.keys(s.currencies)).toHaveLength(22);
   });
   it('normalizes sanctionedCountries as string array even if missing or null in raw DB', () => {
     const raw = toDbForm(createSeed()) as any;
@@ -98,9 +98,9 @@ describe('backend helpers', () => {
     const s1 = normalize(raw);
     expect(s1.committeeState.sanctionedCountries).toEqual([]);
 
-    raw.committeeState.sanctionedCountries = ['Russia', 'Iran'];
+    raw.committeeState.sanctionedCountries = ['Russia', 'Algeria'];
     const s2 = normalize(raw);
-    expect(s2.committeeState.sanctionedCountries).toEqual(['Russia', 'Iran']);
+    expect(s2.committeeState.sanctionedCountries).toEqual(['Russia', 'Algeria']);
   });
   it('toArray handles null / object / array', () => {
     expect(toArray(null)).toEqual([]);
@@ -123,18 +123,18 @@ describe('crisis and sanctions state updates', () => {
   it('handles sanction additions and removals correctly', () => {
     const root = toDbForm(createSeed()) as any;
     applyUpdates(root, {
-      'committeeState/sanctions/Iran': { at: 100, until: 700 },
-      'committeeState/sanctionedCountries': ['Iran'],
+      'committeeState/sanctions/Algeria': { at: 100, until: 700 },
+      'committeeState/sanctionedCountries': ['Algeria'],
     });
-    expect(root.committeeState.sanctions.Iran.until).toBe(700);
-    expect(root.committeeState.sanctionedCountries).toEqual(['Iran']);
+    expect(root.committeeState.sanctions.Algeria.until).toBe(700);
+    expect(root.committeeState.sanctionedCountries).toEqual(['Algeria']);
 
     // Lift sanctions
     applyUpdates(root, {
-      'committeeState/sanctions/Iran': null,
+      'committeeState/sanctions/Algeria': null,
       'committeeState/sanctionedCountries': [],
     });
-    expect(root.committeeState.sanctions.Iran).toBeUndefined();
+    expect(root.committeeState.sanctions.Algeria).toBeUndefined();
     expect(root.committeeState.sanctionedCountries).toEqual([]);
   });
 

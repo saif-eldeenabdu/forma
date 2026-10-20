@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Activity, BookOpen, Globe2, Landmark, Lock, Repeat, ScrollText, Volume2, VolumeX, X, Gavel } from 'lucide-react';
-import { useNow, useStore, COUNTRY_NAMES } from '../lib/store';
+import { useNow, useStore } from '../lib/store';
+import { FULL_MEMBERS, PARTNERS } from '../data/countries';
 import { isMuted, setMuted } from '../lib/audio';
 import { CrisisOverlay, MotionFlash, ActiveMotionBanner } from './Overlays';
 
@@ -180,10 +181,17 @@ export default function Layout() {
                 onChange={(e) => setMe(e.target.value)}
                 aria-label="Your delegation"
               >
-                <option value="">— select —</option>
-                {COUNTRY_NAMES.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
+                <option value="">— select delegation —</option>
+                <optgroup label="FULL BRICS MEMBERS (11)">
+                  {FULL_MEMBERS.map((c) => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="BRICS PARTNERS (11)">
+                  {PARTNERS.map((c) => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </optgroup>
               </select>
             </div>
             <Clock />
@@ -235,9 +243,16 @@ export default function Layout() {
               aria-label="Your delegation"
             >
               <option value="">Delegation…</option>
-              {COUNTRY_NAMES.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
+              <optgroup label="FULL BRICS MEMBERS (11)">
+                {FULL_MEMBERS.map((c) => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </optgroup>
+              <optgroup label="BRICS PARTNERS (11)">
+                {PARTNERS.map((c) => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </optgroup>
             </select>
             <button
               className="btn !px-2"

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Check, EyeOff, Send, UserPlus } from 'lucide-react';
-import { COUNTRY_NAMES, useStore } from '../lib/store';
+import { useStore } from '../lib/store';
+import { FULL_MEMBERS, PARTNERS } from '../data/countries';
 import { MOTION_ORDER, sortMotions } from '../lib/motions';
 import type { MotionType, SuezCurrency } from '../lib/types';
 import { Field, PageHeader, Panel, fmtSecondsLabel } from '../components/ui';
@@ -59,9 +60,16 @@ function MotionForm() {
         <Field label="Delegation">
           <select className="field" value={effectiveDelegation} onChange={(e) => setDelegation(e.target.value)} required>
             <option value="">— select delegation —</option>
-            {COUNTRY_NAMES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
+            <optgroup label="FULL BRICS MEMBERS (11)">
+              {FULL_MEMBERS.map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="BRICS PARTNERS (11)">
+              {PARTNERS.map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </optgroup>
           </select>
         </Field>
         <Field label="Motion type">
@@ -152,9 +160,16 @@ function GslRequest() {
         <Field label="Delegation">
           <select className="field" value={country} onChange={(e) => setWho(e.target.value)}>
             <option value="">— select delegation —</option>
-            {COUNTRY_NAMES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
+            <optgroup label="FULL BRICS MEMBERS (11)">
+              {FULL_MEMBERS.map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="BRICS PARTNERS (11)">
+              {PARTNERS.map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </optgroup>
           </select>
         </Field>
         <button
@@ -196,9 +211,16 @@ function DirectiveForm() {
         <Field label="From">
           <select className="field" value={sender} onChange={(e) => setFrom(e.target.value)}>
             <option value="">— select delegation —</option>
-            {COUNTRY_NAMES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
+            <optgroup label="FULL BRICS MEMBERS (11)">
+              {FULL_MEMBERS.map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="BRICS PARTNERS (11)">
+              {PARTNERS.map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </optgroup>
           </select>
         </Field>
         <Field label="Subject">

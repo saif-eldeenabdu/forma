@@ -63,7 +63,7 @@ export const BRIEFING: BriefingModule[] = [
       {
         label: 'ROADBLOCK 3',
         heading: 'Sanctioned Hawks vs. USD-Pegged Moderates',
-        body: 'Russia and Iran want to burn the SWIFT system to the ground tomorrow. Saudi Arabia and the UAE literally peg their currencies to the US Dollar and hold trillions in Western investments. How do you write a resolution that both sides will sign?',
+        body: 'Russia and sanctioned partners (like Belarus and Cuba) want to burn the SWIFT system to the ground tomorrow. Meanwhile, Saudi Arabia and the UAE peg their currencies to the US Dollar and hold trillions in Western investments. How do you write a resolution that both sides will sign?',
       },
     ],
   },

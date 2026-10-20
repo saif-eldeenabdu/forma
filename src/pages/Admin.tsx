@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { AlertTriangle, ArrowDown, ArrowUp, Check, Gavel, Landmark, Lock, Megaphone, Pause, Play, RotateCcw, SkipForward, Skull, Trash2, TrendingUp, X } from 'lucide-react';
-import { COUNTRIES, COUNTRY_NAMES } from '../data/countries';
+import { FULL_MEMBERS, PARTNERS } from '../data/countries';
 import { BRICS_CLEAR_QUORUM, useNow, useStore } from '../lib/store';
 import { fmtMT, grainType } from '../data/grain';
 import { deriveTimer } from '../lib/timer';
@@ -117,7 +117,12 @@ function TimerTab() {
             <Field label="Current speaker (override)">
               <select className="field" value={t.currentSpeaker} onChange={(e) => actions.setSpeaker(e.target.value)}>
                 <option value="None">None</option>
-                {COUNTRY_NAMES.map((c) => <option key={c}>{c}</option>)}
+                <optgroup label="FULL BRICS MEMBERS (11)">
+                  {FULL_MEMBERS.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+                </optgroup>
+                <optgroup label="BRICS PARTNERS (11)">
+                  {PARTNERS.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+                </optgroup>
               </select>
             </Field>
           </div>
@@ -155,7 +160,12 @@ function TimerTab() {
           <div className="flex gap-2 border-t border-hairline p-3">
             <select className="field" value={addCountry} onChange={(e) => setAddCountry(e.target.value)} aria-label="Add country to queue">
               <option value="">Add delegation to queue…</option>
-              {COUNTRY_NAMES.map((c) => <option key={c}>{c}</option>)}
+              <optgroup label="FULL BRICS MEMBERS (11)">
+                {FULL_MEMBERS.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+              </optgroup>
+              <optgroup label="BRICS PARTNERS (11)">
+                {PARTNERS.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+              </optgroup>
             </select>
             <button className="btn shrink-0" disabled={!addCountry} onClick={() => { actions.addToQueue(addCountry); setAddCountry(''); }}>Add</button>
           </div>
@@ -408,7 +418,7 @@ function SwanCard({ title, desc, children, tone = 'crimson' }: { title: string; 
 function SwanTab() {
   const { state, actions } = useStore();
   const cs = state.committeeState;
-  const [country, setCountry] = useState('Iran');
+  const [country, setCountry] = useState('Algeria');
   const [freezeCountry, setFreezeCountry] = useState('Brazil');
   const [freezeAmt, setFreezeAmt] = useState(150);
   const [title, setTitle] = useState('');
@@ -443,7 +453,12 @@ function SwanTab() {
         <SwanCard title="Mode 3 // Secondary Sanctions Roulette" desc="Stamps SANCTIONED // SWIFT CUTOFF on the country, drops its currency 12%, and opens a 10-minute BRICS Pay bail-out window.">
           <div className="flex gap-2">
             <select className="field" value={country} onChange={(e) => setCountry(e.target.value)} aria-label="Country to sanction">
-              {COUNTRIES.map((c) => <option key={c.name}>{c.name}</option>)}
+              <optgroup label="FULL BRICS MEMBERS (11)">
+                {FULL_MEMBERS.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+              </optgroup>
+              <optgroup label="BRICS PARTNERS (11)">
+                {PARTNERS.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+              </optgroup>
             </select>
             <button className="btn btn-crimson shrink-0" onClick={() => actions.imposeSanctions(country)}>Impose Secondary Sanctions</button>
           </div>
@@ -462,7 +477,12 @@ function SwanTab() {
         <SwanCard title="MODE 4 // WESTERN ASSET FREEZE (EUROCLEAR CUTOFF)" desc="Euroclear/DTCC unilaterally block a member's foreign reserves. Currency drops 8.5%, a crimson alert hits every screen, and delegates must ratify BRICS Clear.">
           <div className="space-y-3">
             <select className="field" value={freezeCountry} onChange={(e) => setFreezeCountry(e.target.value)} aria-label="Country to freeze">
-              {COUNTRIES.map((c) => <option key={c.name}>{c.name}</option>)}
+              <optgroup label="FULL BRICS MEMBERS (11)">
+                {FULL_MEMBERS.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+              </optgroup>
+              <optgroup label="BRICS PARTNERS (11)">
+                {PARTNERS.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+              </optgroup>
             </select>
             <div className="grid grid-cols-3 gap-px border border-hairline bg-hairline">
               {[50, 150, 300].map((n) => (
