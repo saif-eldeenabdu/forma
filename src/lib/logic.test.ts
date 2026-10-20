@@ -174,3 +174,53 @@ describe('applyValueChange', () => {
   });
 });
 
+describe('delegation PINs & trade lifecycle', () => {
+  it('seeds and normalizes delegation PINs for all 22 countries', () => {
+    const s = normalize(null);
+    expect(s.delegationPins['Brazil']).toBe('1042');
+    expect(s.delegationPins['Russian Federation']).toBe('2084');
+    expect(s.delegationPins['India']).toBe('3019');
+    expect(s.delegationPins['China']).toBe('4055');
+    expect(s.delegationPins['South Africa']).toBe('5071');
+    expect(s.delegationPins['Egypt']).toBe('9036');
+    expect(s.delegationPins['Ethiopia']).toBe('1152');
+    expect(s.delegationPins['Indonesia']).toBe('2267');
+    expect(s.delegationPins['Algeria']).toBe('8014');
+    expect(s.delegationPins['Saudi Arabia']).toBe('6023');
+    expect(s.delegationPins['United Arab Emirates']).toBe('7088');
+    expect(s.delegationPins['Uzbekistan']).toBe('3312');
+    expect(s.delegationPins['Belarus']).toBe('5541');
+    expect(s.delegationPins['Bolivia']).toBe('7729');
+    expect(s.delegationPins['Cuba']).toBe('6618');
+    expect(s.delegationPins['Kazakhstan']).toBe('4483');
+    expect(s.delegationPins['Malaysia']).toBe('9921');
+    expect(s.delegationPins['Nigeria']).toBe('8834');
+    expect(s.delegationPins['Thailand']).toBe('2249');
+    expect(s.delegationPins['Vietnam']).toBe('1193');
+    expect(s.delegationPins['Uganda']).toBe('5582');
+    expect(s.delegationPins['Türkiye']).toBe('6670');
+  });
+
+  it('allows overriding delegation PINs via raw state updates', () => {
+    const raw = toDbForm(createSeed()) as any;
+    raw.delegationPins = { Brazil: '9999' };
+    const s = normalize(raw);
+    expect(s.delegationPins['Brazil']).toBe('9999');
+    expect(s.delegationPins['India']).toBe('3019');
+  });
+
+  it('normalizes multi-stage trade statuses', () => {
+    const raw = toDbForm(createSeed()) as any;
+    raw.trades = {
+      t1: { id: 't1', from: 'Brazil', to: 'India', status: 'PENDING_COUNTERPARTY', createdAt: 1 },
+      t2: { id: 't2', from: 'China', to: 'Russia', status: 'AWAITING_CHAIR', createdAt: 2 },
+      t3: { id: 't3', from: 'Egypt', to: 'Algeria', status: 'APPROVED', createdAt: 3 },
+    };
+    const s = normalize(raw);
+    expect(s.trades[0].status).toBe('PENDING_COUNTERPARTY');
+    expect(s.trades[1].status).toBe('AWAITING_CHAIR');
+    expect(s.trades[2].status).toBe('APPROVED');
+  });
+});
+
+

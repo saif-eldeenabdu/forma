@@ -107,6 +107,95 @@ function PinModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function DelegationAuthModal({ onClose }: { onClose: () => void }) {
+  const { claimDelegation } = useStore();
+  const [country, setCountry] = useState('Brazil');
+  const [pin, setPin] = useState('');
+  const [err, setErr] = useState(false);
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!country) return;
+    if (claimDelegation(country, pin)) {
+      setPin('');
+      onClose();
+    } else {
+      setErr(true);
+      setPin('');
+    }
+  };
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-obsidian/90 p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.form
+        onSubmit={submit}
+        onClick={(e) => e.stopPropagation()}
+        initial={{ y: 12, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 12, opacity: 0 }}
+        className="panel w-full max-w-sm p-5"
+      >
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <p className="label !text-gold">Sovereign Identity Lock</p>
+            <h2 className="mt-1 text-2xl">Claim Delegation</h2>
+          </div>
+          <button type="button" onClick={onClose} className="text-sage hover:text-ivory" aria-label="Close">
+            <X size={16} />
+          </button>
+        </div>
+        <label className="label mb-1 block">Select Country</label>
+        <select
+          className="field mb-3"
+          value={country}
+          onChange={(e) => {
+            setCountry(e.target.value);
+            setErr(false);
+          }}
+          required
+        >
+          <optgroup label="FULL BRICS MEMBERS (11)">
+            {FULL_MEMBERS.map((c) => (
+              <option key={c.name} value={c.name}>{c.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="BRICS PARTNERS (11)">
+            {PARTNERS.map((c) => (
+              <option key={c.name} value={c.name}>{c.name}</option>
+            ))}
+          </optgroup>
+        </select>
+
+        <label className="label mb-1 block">4-Digit Delegation PIN</label>
+        <input
+          autoFocus
+          inputMode="numeric"
+          type="password"
+          placeholder="••••"
+          value={pin}
+          onChange={(e) => {
+            setPin(e.target.value);
+            setErr(false);
+          }}
+          className={`field tabular text-center text-xl tracking-[0.6em] ${err ? '!border-crimson' : ''}`}
+          maxLength={8}
+          aria-label="Delegation PIN"
+        />
+        {err && <p className="mt-2 font-mono text-[11px] uppercase text-crimson">Authentication failed // invalid PIN for {country}</p>}
+        <button className="btn btn-gold mt-4 w-full" type="submit" disabled={!pin.trim()}>
+          <Lock size={13} /> Authenticate Delegation
+        </button>
+      </motion.form>
+    </motion.div>
+  );
+}
+
 function Clock() {
   const t = useNow(1000);
   const d = new Date(t);
@@ -119,11 +208,13 @@ function Clock() {
 }
 
 export default function Layout() {
-  const { state, me, setMe, isChair, lock, toast: stateToast } = useStore();
+  const { state, me, releaseDelegation, isChair, lock, toast: stateToast } = useStore();
   const navigate = useNavigate();
   const [pinOpen, setPinOpen] = useState(false);
+  const [claimOpen, setClaimOpen] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
   const cs = state.committeeState;
+  const incomingTrades = me ? state.trades.filter((t) => t.to === me && t.status === 'PENDING_COUNTERPARTY').length : 0;
   const ledger = state.trades
     .filter((t) => t.kind === 'BARTER' && t.status === 'APPROVED')
     .map((t, i) => `LEDGER #${String(i + 1).padStart(3, '0')} — ${t.from} ⇄ ${t.to}: ${t.offer} FOR ${t.request}`);
@@ -149,12 +240,17 @@ export default function Layout() {
                 to={n.to}
                 end={n.end}
                 className={({ isActive }) =>
-                  `relative px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] ${isActive ? 'text-gold' : 'text-sage hover:text-ivory'}`
+                  `relative flex items-center px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] ${isActive ? 'text-gold' : 'text-sage hover:text-ivory'}`
                 }
               >
                 {({ isActive }) => (
                   <>
-                    {n.label}
+                    <span>{n.label}</span>
+                    {n.to === '/trade' && incomingTrades > 0 && (
+                      <span className="ml-1.5 rounded-full bg-crimson px-1.5 py-0.2 font-mono text-[9px] font-bold text-ivory animate-pulse">
+                        {incomingTrades}
+                      </span>
+                    )}
                     {isActive && <motion.span layoutId="nav-underline" className="absolute inset-x-2 -bottom-[9px] h-px bg-gold" />}
                   </>
                 )}
@@ -174,25 +270,26 @@ export default function Layout() {
 
           <div className="ml-auto flex items-center gap-4">
             <div className="hidden items-center gap-2 lg:flex">
-              <span className="label">Delegation</span>
-              <select
-                className="border border-hairline bg-charcoal px-2 py-1 font-mono text-[11px] text-ivory"
-                value={me}
-                onChange={(e) => setMe(e.target.value)}
-                aria-label="Your delegation"
-              >
-                <option value="">— select delegation —</option>
-                <optgroup label="FULL BRICS MEMBERS (11)">
-                  {FULL_MEMBERS.map((c) => (
-                    <option key={c.name} value={c.name}>{c.name}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="BRICS PARTNERS (11)">
-                  {PARTNERS.map((c) => (
-                    <option key={c.name} value={c.name}>{c.name}</option>
-                  ))}
-                </optgroup>
-              </select>
+              {me ? (
+                <div className="flex items-center gap-2 border border-gold/40 bg-charcoal px-3 py-1 font-mono text-[11px]">
+                  <Lock size={12} className="text-gold" />
+                  <span className="font-bold uppercase tracking-wider text-ivory">{me}</span>
+                  <button
+                    onClick={releaseDelegation}
+                    className="ml-2 text-[10px] text-sage underline hover:text-crimson"
+                    title="Clear authentication session and return to Viewer mode"
+                  >
+                    Log Out / Switch
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setClaimOpen(true)}
+                  className="btn btn-gold !py-1 !text-[11px]"
+                >
+                  <Lock size={12} /> Claim Delegation
+                </button>
+              )}
             </div>
             <Clock />
           </div>
@@ -236,24 +333,19 @@ export default function Layout() {
             <span className="label">BRICS Currency &amp; De-Dollarization Committee // 2026 Framework // Simulation — figures approximate</span>
           </div>
           <div className="flex items-center gap-2">
-            <select
-              className="border border-hairline bg-charcoal px-2 py-1.5 font-mono text-[11px] text-ivory lg:hidden"
-              value={me}
-              onChange={(e) => setMe(e.target.value)}
-              aria-label="Your delegation"
-            >
-              <option value="">Delegation…</option>
-              <optgroup label="FULL BRICS MEMBERS (11)">
-                {FULL_MEMBERS.map((c) => (
-                  <option key={c.name} value={c.name}>{c.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label="BRICS PARTNERS (11)">
-                {PARTNERS.map((c) => (
-                  <option key={c.name} value={c.name}>{c.name}</option>
-                ))}
-              </optgroup>
-            </select>
+            {me ? (
+              <div className="flex items-center gap-1.5 border border-gold/40 bg-charcoal px-2 py-1 font-mono text-[10px] lg:hidden">
+                <Lock size={11} className="text-gold" />
+                <span className="truncate max-w-[120px] font-bold text-ivory">{me}</span>
+                <button onClick={releaseDelegation} className="ml-1 text-[9px] text-crimson underline">
+                  Log Out
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setClaimOpen(true)} className="btn !py-1 !text-[10px] lg:hidden">
+                <Lock size={11} /> Claim
+              </button>
+            )}
             <button
               className="btn !px-2"
               onClick={() => {
@@ -287,13 +379,23 @@ export default function Layout() {
               `flex flex-col items-center gap-1 py-2 font-mono text-[9px] uppercase tracking-wider ${isActive ? 'text-gold' : 'text-sage'}`
             }
           >
-            <n.icon size={16} strokeWidth={1.5} />
+            <div className="relative">
+              <n.icon size={16} strokeWidth={1.5} />
+              {n.to === '/trade' && incomingTrades > 0 && (
+                <span className="absolute -top-1 -right-2 rounded-full bg-crimson px-1 text-[8px] font-bold text-ivory animate-pulse">
+                  {incomingTrades}
+                </span>
+              )}
+            </div>
             {n.label}
           </NavLink>
         ))}
       </nav>
 
-      <AnimatePresence>{pinOpen && <PinModal onClose={() => setPinOpen(false)} />}</AnimatePresence>
+      <AnimatePresence>
+        {pinOpen && <PinModal onClose={() => setPinOpen(false)} />}
+        {claimOpen && <DelegationAuthModal onClose={() => setClaimOpen(false)} />}
+      </AnimatePresence>
       <CrisisOverlay />
       <MotionFlash />
     </div>

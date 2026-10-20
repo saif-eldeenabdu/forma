@@ -14,7 +14,7 @@ import { normalize } from './normalize';
 import { deriveTimer } from './timer';
 import { applyValueChange, clamp, PEGGED } from './markets';
 import { uid } from './motions';
-import { byName, COUNTRY_NAMES } from '../data/countries';
+import { byName, COUNTRY_NAMES, DEFAULT_DELEGATION_PINS } from '../data/countries';
 import { BRICS_PAY_ADOPTION_BOOST, USD_SURCHARGE_PCT, defaultStock, fmtMT, grainType } from '../data/grain';
 import type {
   CrisisAlert,
@@ -68,6 +68,8 @@ export interface Actions {
   removeNews(index: number): void;
   // trades & directives
   submitTrade(t: { kind: TradeKind; from: string; to: string; offer: string; request: string; note: string }): void;
+  acceptTradeCounterparty(id: string): void;
+  declineTradeCounterparty(id: string): void;
   resolveTrade(id: string, approved: boolean): void;
   submitDirective(d: { from: string; subject: string; body: string }): void;
   // chaos engine
@@ -79,6 +81,8 @@ export interface Actions {
   customCrisis(c: { title: string; body: string; severity: Severity }): void;
   resetMode(): void;
   resetAll(): void;
+  // delegation PINs
+  setDelegationPin(country: string, pin: string): void;
   // asset freeze / BRICS Clear
   executeAssetFreeze(country: string, amountB: number): void;
   cosignBricsClear(country: string): void;
@@ -102,6 +106,8 @@ interface Ctx {
   now: () => number;
   me: string;
   setMe: (name: string) => void;
+  claimDelegation: (country: string, pin: string) => boolean;
+  releaseDelegation: () => void;
   isChair: boolean;
   unlock: (pin: string) => boolean;
   lock: () => void;
@@ -111,6 +117,7 @@ interface Ctx {
 
 const StoreCtx = createContext<Ctx | null>(null);
 
+const AUTH_DELEGATION_KEY = 'brics-net:auth-delegation';
 const ME_KEY = 'brics-net:me';
 const CHAIR_KEY = 'brics-net:chair';
 
@@ -119,7 +126,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [backend, setBackend] = useState<Backend>(() => createFirebaseBackend());
   const [syncNote, setSyncNote] = useState('');
-  const [me, setMeState] = useState<string>(() => localStorage.getItem(ME_KEY) ?? '');
+  const [me, setMeState] = useState<string>(() => localStorage.getItem(AUTH_DELEGATION_KEY) || '');
   const [isChair, setIsChair] = useState<boolean>(
     () => sessionStorage.getItem(CHAIR_KEY) === '1' || localStorage.getItem(CHAIR_KEY) === '1',
   );
@@ -449,8 +456,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       submitTrade(t) {
         const id = uid();
-        const trade: Trade = { id, ...t, status: 'PENDING', createdAt: now() };
+        const trade: Trade = { id, ...t, status: 'PENDING_COUNTERPARTY', createdAt: now() };
         write({ [`trades/${id}`]: trade });
+        showToast(`TRADE PROPOSAL SENT TO ${t.to.toUpperCase()}`);
+      },
+      acceptTradeCounterparty(id) {
+        const tr = S().trades.find((x) => x.id === id);
+        write({ [`trades/${id}/status`]: 'AWAITING_CHAIR' });
+        showToast(`TRADE ACCEPTED: Sent to Chair (${tr ? tr.from : ''} ⇄ ${tr ? tr.to : ''})`);
+      },
+      declineTradeCounterparty(id) {
+        const tr = S().trades.find((x) => x.id === id);
+        write({
+          [`trades/${id}/status`]: 'REJECTED',
+          [`trades/${id}/resolvedAt`]: now(),
+        });
+        showToast(`TRADE DECLINED (${tr ? tr.from : ''} ⇄ ${tr ? tr.to : ''})`);
       },
       resolveTrade(id, approved) {
         const tr = S().trades.find((x) => x.id === id);
@@ -726,8 +747,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           directives: null,
           grainStockpiles: seed.grainStockpiles,
           grainContracts: null,
+          delegationPins: seed.delegationPins,
         });
         showToast('DATA RESET: All state restored to initial seed');
+      },
+      setDelegationPin(country, pin) {
+        const p = pin.trim();
+        if (!p) return;
+        write({ [`delegationPins/${country}`]: p });
+        showToast(`PIN UPDATED FOR ${country.toUpperCase()}`);
       },
       showToast(msg) {
         showToast(msg);
@@ -736,10 +764,40 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return a;
   }, [backend, now, showToast]);
 
+  const claimDelegation = useCallback(
+    (country: string, pin: string): boolean => {
+      const S = stateRef.current;
+      const expected = S.delegationPins?.[country] || DEFAULT_DELEGATION_PINS[country];
+      if (expected && pin.trim() === expected.trim()) {
+        localStorage.setItem(AUTH_DELEGATION_KEY, country);
+        localStorage.setItem(ME_KEY, country);
+        setMeState(country);
+        showToast(`AUTHENTICATED: ${country.toUpperCase()}`);
+        return true;
+      }
+      return false;
+    },
+    [showToast],
+  );
+
+  const releaseDelegation = useCallback(() => {
+    localStorage.removeItem(AUTH_DELEGATION_KEY);
+    localStorage.removeItem(ME_KEY);
+    setMeState('');
+    showToast('LOGGED OUT: Returned to Viewer Mode');
+  }, [showToast]);
+
   const setMe = useCallback((name: string) => {
-    localStorage.setItem(ME_KEY, name);
+    if (name) {
+      localStorage.setItem(AUTH_DELEGATION_KEY, name);
+      localStorage.setItem(ME_KEY, name);
+    } else {
+      localStorage.removeItem(AUTH_DELEGATION_KEY);
+      localStorage.removeItem(ME_KEY);
+    }
     setMeState(name);
   }, []);
+
   const unlock = useCallback((pin: string) => {
     if (pin.trim() === CHAIR_PIN) {
       sessionStorage.setItem(CHAIR_KEY, '1');
@@ -763,6 +821,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     now,
     me,
     setMe,
+    claimDelegation,
+    releaseDelegation,
     isChair,
     unlock,
     lock,

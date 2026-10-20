@@ -94,7 +94,7 @@ export interface Motion {
 }
 
 export type TradeKind = 'SWAP' | 'BARTER';
-export type TradeStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type TradeStatus = 'PENDING_COUNTERPARTY' | 'AWAITING_CHAIR' | 'APPROVED' | 'REJECTED' | 'PENDING';
 
 export interface Trade {
   id: string;
@@ -152,6 +152,7 @@ export interface RootState {
   directives: Directive[];
   grainStockpiles: Record<string, GrainStock>;
   grainContracts: GrainContract[];
+  delegationPins: Record<string, string>;
 }
 
 /** Multi-path update map: `a/b/c` -> value (null deletes). Mirrors Firebase `update()`. */

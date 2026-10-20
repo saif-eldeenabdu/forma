@@ -1,5 +1,5 @@
 import type { RootState } from './types';
-import { COUNTRY_NAMES } from '../data/countries';
+import { COUNTRY_NAMES, DEFAULT_DELEGATION_PINS } from '../data/countries';
 import { defaultStock } from '../data/grain';
 
 /** Exact initial RTDB structure from the master spec (plus Chair-engine nodes). */
@@ -67,5 +67,6 @@ export function createSeed(now = Date.now()): RootState {
     directives: [],
     grainStockpiles: Object.fromEntries(COUNTRY_NAMES.map((c) => [c, defaultStock(c)])),
     grainContracts: [],
+    delegationPins: { ...DEFAULT_DELEGATION_PINS },
   };
 }

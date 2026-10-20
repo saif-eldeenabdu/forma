@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { Check, EyeOff, Send, UserPlus } from 'lucide-react';
+import { Check, EyeOff, Lock, Send, UserPlus } from 'lucide-react';
 import { useStore } from '../lib/store';
-import { FULL_MEMBERS, PARTNERS } from '../data/countries';
 import { MOTION_ORDER, sortMotions } from '../lib/motions';
 import type { MotionType, SuezCurrency } from '../lib/types';
 import { Field, PageHeader, Panel, fmtSecondsLabel } from '../components/ui';
@@ -29,22 +28,20 @@ function Confirm({ msg }: { msg: string }) {
 function MotionForm() {
   const { me, actions } = useStore();
   const { msg, flash } = useFlash();
-  const [delegation, setDelegation] = useState(me);
   const [type, setType] = useState<MotionType>('Moderated Caucus');
   const [mins, setMins] = useState(10);
   const [speaker, setSpeaker] = useState(45);
   const [topic, setTopic] = useState('');
 
-  const effectiveDelegation = delegation || me;
   const needsTotal = type === 'Moderated Caucus' || type === 'Unmoderated Caucus';
   const needsSpeaker = type === 'Moderated Caucus' || type === 'Set Speaking Time';
-  const valid = !!effectiveDelegation && (!needsTotal || mins > 0) && (!needsSpeaker || speaker > 0) && topic.trim().length > 0;
+  const valid = !!me && (!needsTotal || mins > 0) && (!needsSpeaker || speaker > 0) && topic.trim().length > 0;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!valid) return;
+    if (!valid || !me) return;
     actions.submitMotion({
-      delegation: effectiveDelegation,
+      delegation: me,
       type,
       totalSeconds: needsTotal ? mins * 60 : 0,
       speakerSeconds: needsSpeaker ? speaker : 0,
@@ -57,21 +54,21 @@ function MotionForm() {
   return (
     <Panel title="Submit a Motion">
       <form onSubmit={submit} className="space-y-3">
-        <Field label="Delegation">
-          <select className="field" value={effectiveDelegation} onChange={(e) => setDelegation(e.target.value)} required>
-            <option value="">— select delegation —</option>
-            <optgroup label="FULL BRICS MEMBERS (11)">
-              {FULL_MEMBERS.map((c) => (
-                <option key={c.name} value={c.name}>{c.name}</option>
-              ))}
-            </optgroup>
-            <optgroup label="BRICS PARTNERS (11)">
-              {PARTNERS.map((c) => (
-                <option key={c.name} value={c.name}>{c.name}</option>
-              ))}
-            </optgroup>
-          </select>
-        </Field>
+        {me ? (
+          <Field label="Proposing Delegation">
+            <div className="field flex items-center justify-between bg-charcoal/60 text-ivory">
+              <span className="flex items-center gap-2">
+                <Lock size={12} className="text-gold" />
+                <span className="font-mono text-sm">{me}</span>
+              </span>
+              <span className="font-mono text-[9px] uppercase tracking-wider text-gold">Authenticated</span>
+            </div>
+          </Field>
+        ) : (
+          <div className="border border-gold/40 bg-gold/10 p-3 font-mono text-xs text-gold">
+            Authenticate as a delegation to submit proposals.
+          </div>
+        )}
         <Field label="Motion type">
           <select className="field" value={type} onChange={(e) => setType(e.target.value as MotionType)}>
             {MOTION_ORDER.slice()
@@ -149,38 +146,37 @@ function MotionLedger() {
 function GslRequest() {
   const { state, me, actions } = useStore();
   const { msg, flash } = useFlash();
-  const [who, setWho] = useState(me);
-  const country = who || me;
   const cs = state.committeeState;
-  const queued = cs.gslQueue.includes(country);
-  const pending = cs.gslRequests.some((r) => r.country === country);
+  const queued = me ? cs.gslQueue.includes(me) : false;
+  const pending = me ? cs.gslRequests.some((r) => r.country === me) : false;
   return (
     <Panel title="Request to be Added to the GSL">
       <div className="space-y-3">
-        <Field label="Delegation">
-          <select className="field" value={country} onChange={(e) => setWho(e.target.value)}>
-            <option value="">— select delegation —</option>
-            <optgroup label="FULL BRICS MEMBERS (11)">
-              {FULL_MEMBERS.map((c) => (
-                <option key={c.name} value={c.name}>{c.name}</option>
-              ))}
-            </optgroup>
-            <optgroup label="BRICS PARTNERS (11)">
-              {PARTNERS.map((c) => (
-                <option key={c.name} value={c.name}>{c.name}</option>
-              ))}
-            </optgroup>
-          </select>
-        </Field>
+        {me ? (
+          <Field label="Delegation">
+            <div className="field flex items-center justify-between bg-charcoal/60 text-ivory">
+              <span className="flex items-center gap-2">
+                <Lock size={12} className="text-gold" />
+                <span className="font-mono text-sm">{me}</span>
+              </span>
+              <span className="font-mono text-[9px] uppercase tracking-wider text-gold">Authenticated</span>
+            </div>
+          </Field>
+        ) : (
+          <div className="border border-gold/40 bg-gold/10 p-3 font-mono text-xs text-gold">
+            Authenticate as a delegation to request speaking time.
+          </div>
+        )}
         <button
           className="btn w-full"
-          disabled={!country || queued || pending}
+          disabled={!me || queued || pending}
           onClick={() => {
-            actions.requestGsl(country);
+            if (!me) return;
+            actions.requestGsl(me);
             flash('Request sent to the Chair');
           }}
         >
-          <UserPlus size={13} /> {queued ? 'Already on the list' : pending ? 'Request pending' : 'One-click request'}
+          <UserPlus size={13} /> {!me ? 'Authenticate Delegation' : queued ? 'Already on the list' : pending ? 'Request pending' : 'One-click request'}
         </button>
         <Confirm msg={msg} />
       </div>
@@ -191,15 +187,13 @@ function GslRequest() {
 function DirectiveForm() {
   const { me, actions } = useStore();
   const { msg, flash } = useFlash();
-  const [from, setFrom] = useState(me);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
-  const sender = from || me;
-  const valid = !!sender && subject.trim() && body.trim();
+  const valid = !!me && subject.trim().length > 0 && body.trim().length > 0;
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!valid) return;
-    actions.submitDirective({ from: sender, subject: subject.trim(), body: body.trim() });
+    if (!valid || !me) return;
+    actions.submitDirective({ from: me, subject: subject.trim(), body: body.trim() });
     setSubject('');
     setBody('');
     flash('Directive delivered to the Chair');
@@ -208,26 +202,26 @@ function DirectiveForm() {
     <Panel title={<span className="flex items-center gap-2"><EyeOff size={12} /> Covert Financial Directive</span>}>
       <form onSubmit={submit} className="space-y-3">
         <p className="text-xs text-sage">Private channel to the Chair. Describe the covert financial move your delegation is attempting.</p>
-        <Field label="From">
-          <select className="field" value={sender} onChange={(e) => setFrom(e.target.value)}>
-            <option value="">— select delegation —</option>
-            <optgroup label="FULL BRICS MEMBERS (11)">
-              {FULL_MEMBERS.map((c) => (
-                <option key={c.name} value={c.name}>{c.name}</option>
-              ))}
-            </optgroup>
-            <optgroup label="BRICS PARTNERS (11)">
-              {PARTNERS.map((c) => (
-                <option key={c.name} value={c.name}>{c.name}</option>
-              ))}
-            </optgroup>
-          </select>
-        </Field>
+        {me ? (
+          <Field label="From">
+            <div className="field flex items-center justify-between bg-charcoal/60 text-ivory">
+              <span className="flex items-center gap-2">
+                <Lock size={12} className="text-gold" />
+                <span className="font-mono text-sm">{me}</span>
+              </span>
+              <span className="font-mono text-[9px] uppercase tracking-wider text-gold">Authenticated</span>
+            </div>
+          </Field>
+        ) : (
+          <div className="border border-gold/40 bg-gold/10 p-3 font-mono text-xs text-gold">
+            Authenticate as a delegation to lodge directives.
+          </div>
+        )}
         <Field label="Subject">
-          <input className="field" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Quiet gold purchase via Dubai vaults" />
+          <input className="field" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Quiet gold purchase via Dubai vaults" required />
         </Field>
         <Field label="Directive">
-          <textarea className="field min-h-[84px] resize-y" value={body} onChange={(e) => setBody(e.target.value)} />
+          <textarea className="field min-h-[84px] resize-y" value={body} onChange={(e) => setBody(e.target.value)} required />
         </Field>
         <button className="btn btn-gold w-full" type="submit" disabled={!valid}>
           <Send size={13} /> Send to Chair

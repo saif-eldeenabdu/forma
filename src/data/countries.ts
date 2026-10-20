@@ -480,3 +480,35 @@ export const COUNTRY_NAMES = COUNTRIES.map((c) => c.name);
 export const byName = (n: string): Country | undefined => COUNTRIES.find((c) => c.name === n);
 export const byCurrency = (code: string): Country | undefined => COUNTRIES.find((c) => c.currencyCode === code);
 
+export const DEFAULT_DELEGATION_PINS: Record<string, string> = {
+  // Full BRICS Members (11)
+  'Brazil': '1042',
+  'Russian Federation': '2084',
+  'Russia': '2084',
+  'India': '3019',
+  'China': '4055',
+  'South Africa': '5071',
+  'Saudi Arabia': '6023',
+  'United Arab Emirates': '7088',
+  'UAE': '7088',
+  'Algeria': '8014',
+  'Iran': '8014',
+  'Egypt': '9036',
+  'Ethiopia': '1152',
+  'Indonesia': '2267',
+  // BRICS Partners (11)
+  'Uzbekistan': '3312',
+  'Belarus': '5541',
+  'Bolivia': '7729',
+  'Cuba': '6618',
+  'Kazakhstan': '4483',
+  'Malaysia': '9921',
+  'Nigeria': '8834',
+  'Thailand': '2249',
+  'Vietnam': '1193',
+  'Uganda': '5582',
+  'Türkiye': '6670',
+  'Turkey': '6670',
+};
+
+

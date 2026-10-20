@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, Check, Gavel, Landmark, Lock, Megaphone, Pause, Play, RotateCcw, SkipForward, Skull, Trash2, TrendingUp, X } from 'lucide-react';
-import { FULL_MEMBERS, PARTNERS } from '../data/countries';
+import { AlertTriangle, ArrowDown, ArrowUp, Check, Gavel, Landmark, Lock, Megaphone, Pause, Play, RotateCcw, ShieldCheck, SkipForward, Skull, Trash2, TrendingUp, X } from 'lucide-react';
+import { FULL_MEMBERS, PARTNERS, DEFAULT_DELEGATION_PINS } from '../data/countries';
 import { BRICS_CLEAR_QUORUM, useNow, useStore } from '../lib/store';
 import { fmtMT, grainType } from '../data/grain';
 import { deriveTimer } from '../lib/timer';
@@ -11,7 +11,7 @@ import { Field, PageHeader, Panel, fmtSecondsLabel } from '../components/ui';
 import { TimerPanel } from '../components/Timer';
 import { motionLine } from '../components/Overlays';
 
-type Tab = 'timer' | 'motions' | 'markets' | 'news' | 'trades' | 'crisis';
+type Tab = 'timer' | 'motions' | 'markets' | 'news' | 'trades' | 'crisis' | 'security';
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'timer', label: 'Timers & GSL', icon: <Play size={13} /> },
   { id: 'motions', label: 'Motions', icon: <Gavel size={13} /> },
@@ -19,6 +19,7 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'news', label: 'News & Intel', icon: <Megaphone size={13} /> },
   { id: 'trades', label: 'Trades & Directives', icon: <Landmark size={13} /> },
   { id: 'crisis', label: 'Big Bullshit Area', icon: <Skull size={13} /> },
+  { id: 'security', label: 'Security / PINs', icon: <ShieldCheck size={13} /> },
 ];
 
 /* ------------------------------ PIN gate ------------------------------ */
@@ -330,22 +331,28 @@ function NewsTab() {
 /* ------------------------------ Trades & Directives ------------------------------ */
 function TradesTab() {
   const { state, actions } = useStore();
-  const pending = state.trades.filter((t) => t.status === 'PENDING');
+  const [showPendingCounterparty, setShowPendingCounterparty] = useState(false);
+  const active = state.trades.filter((t) => t.status === 'AWAITING_CHAIR' || t.status === 'PENDING');
+  const pendingCounterparty = state.trades.filter((t) => t.status === 'PENDING_COUNTERPARTY');
   const directives = state.directives.slice().reverse();
   const grain = state.grainContracts.filter((g) => g.status === 'PENDING');
+
   return (
     <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-      <Panel title="Trade Proposals Awaiting Approval" right={<span className="tabular text-[11px] text-sage">{pending.length}</span>} bodyClass="p-0">
+      <Panel title="Trade Proposals Awaiting Chair Approval" right={<span className="tabular text-[11px] text-sage">{active.length} active</span>} bodyClass="p-0">
         <ul className="divide-y divide-hairline">
-          {pending.length === 0 && <li className="px-3 py-6 text-sm text-sage">No pending trades.</li>}
-          {pending.map((t) => (
-            <li key={t.id} className="p-3">
-              <p className="flex items-center gap-2">
+          {active.length === 0 && <li className="px-3 py-6 text-sm text-sage">No trades awaiting Chair execution.</li>}
+          {active.map((t) => (
+            <li key={t.id} className="p-3 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className={`border px-1 font-mono text-[9px] uppercase ${t.kind === 'BARTER' ? 'border-crimson text-crimson' : 'border-gold text-gold'}`}>{t.kind}</span>
-                <span className="font-serif text-lg">{t.from} <span className="text-gold">⇄</span> {t.to}</span>
-              </p>
-              <p className="tabular mt-1 text-xs"><span className="text-sage">GIVES</span> {t.offer} <span className="text-sage">FOR</span> {t.request}</p>
-              {t.note && <p className="mt-1 text-xs text-sage">{t.note}</p>}
+                <span className="border border-emerald bg-emerald/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-emerald">
+                  ✓ MUTUALLY ACCEPTED: {t.from} ⇄ {t.to}
+                </span>
+              </div>
+              <p className="font-serif text-lg leading-tight text-ivory">{t.from} <span className="text-gold">⇄</span> {t.to}</p>
+              <p className="tabular text-xs"><span className="text-sage">GIVES</span> {t.offer} <span className="text-sage">FOR</span> {t.request}</p>
+              {t.note && <p className="text-xs text-sage italic">{t.note}</p>}
               <div className="mt-2 flex gap-2">
                 <button className="btn btn-emerald" onClick={() => actions.resolveTrade(t.id, true)}><Check size={12} /> Approve &amp; Print to Ledger</button>
                 <button className="btn btn-crimson" onClick={() => actions.resolveTrade(t.id, false)}><X size={12} /> Reject</button>
@@ -353,6 +360,39 @@ function TradesTab() {
             </li>
           ))}
         </ul>
+
+        {pendingCounterparty.length > 0 && (
+          <div className="border-t border-hairline bg-charcoal/40 p-3">
+            <button
+              onClick={() => setShowPendingCounterparty(!showPendingCounterparty)}
+              className="flex w-full items-center justify-between font-mono text-xs text-sage hover:text-ivory"
+            >
+              <span>View Pending Counterparty Confirmation ({pendingCounterparty.length})</span>
+              <span className="text-[10px]">{showPendingCounterparty ? '▲ HIDE' : '▼ SHOW'}</span>
+            </button>
+            {showPendingCounterparty && (
+              <ul className="mt-2 divide-y divide-hairline border-t border-hairline/60">
+                {pendingCounterparty.map((t) => (
+                  <li key={t.id} className="py-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-serif text-sm text-ivory">{t.from} ⇄ {t.to}</span>
+                      <span className="border border-gold px-1.5 py-0.5 font-mono text-[9px] uppercase text-gold">Waiting on {t.to}</span>
+                    </div>
+                    <p className="tabular mt-1 text-xs text-sage">{t.offer} for {t.request}</p>
+                    <div className="mt-2 flex gap-2">
+                      <button className="btn btn-emerald !py-1 text-xs" onClick={() => actions.resolveTrade(t.id, true)}>
+                        Force Approve
+                      </button>
+                      <button className="btn btn-crimson !py-1 text-xs" onClick={() => actions.resolveTrade(t.id, false)}>
+                        Dismiss
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </Panel>
       <Panel title="Covert Financial Directives // Chair Eyes Only" right={<span className="tabular text-[11px] text-sage">{directives.length}</span>} bodyClass="p-0">
         <ul className="divide-y divide-hairline">
@@ -400,8 +440,118 @@ function TradesTab() {
           })}
         </ul>
       </Panel>
-
     </div>
+  );
+}
+
+/* ------------------------------ Security & PINs ------------------------------ */
+function SecurityTab() {
+  const { state, actions } = useStore();
+  const pins = state.delegationPins || {};
+  const [editCountry, setEditCountry] = useState<string | null>(null);
+  const [pinVal, setPinVal] = useState('');
+
+  const savePin = (country: string) => {
+    if (!pinVal.trim()) return;
+    actions.setDelegationPin(country, pinVal.trim());
+    setEditCountry(null);
+    setPinVal('');
+  };
+
+  const countries = [...FULL_MEMBERS, ...PARTNERS];
+
+  return (
+    <Panel title="Sovereign Identity Security // Delegation PIN Management">
+      <p className="mb-4 text-xs text-sage">
+        Delegation authentication codes are stored in Firebase RTDB (<code className="text-gold">delegationPins/&#123;country&#125;</code>).
+        The Chair can inspect or override any country's 4-digit PIN in real time.
+      </p>
+      <div className="overflow-x-auto border border-hairline bg-charcoal/50">
+        <table className="w-full text-left text-xs font-mono">
+          <thead>
+            <tr className="border-b border-hairline text-sage uppercase tracking-wider text-[10px]">
+              <th className="p-2.5">Delegation</th>
+              <th className="p-2.5">Tier</th>
+              <th className="p-2.5">Currency</th>
+              <th className="p-2.5 text-center">Current PIN</th>
+              <th className="p-2.5 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-hairline">
+            {countries.map((c) => {
+              const currentPin = pins[c.name] || DEFAULT_DELEGATION_PINS[c.name] || '0000';
+              const isEditing = editCountry === c.name;
+              return (
+                <tr key={c.name} className="hover:bg-charcoal/80">
+                  <td className="p-2.5 font-bold text-ivory">
+                    <span className="font-serif text-sm">{c.name}</span>
+                    <span className="ml-2 text-[10px] text-sage">({c.code})</span>
+                  </td>
+                  <td className="p-2.5">
+                    <span
+                      className={`border px-1.5 py-0.5 text-[9px] uppercase tracking-wider ${
+                        c.tier === 'FULL BRICS MEMBER'
+                          ? 'border-gold text-gold bg-gold/10'
+                          : 'border-emerald text-emerald bg-emerald/10'
+                      }`}
+                    >
+                      {c.tier}
+                    </span>
+                  </td>
+                  <td className="p-2.5 text-sage">{c.currencyCode}</td>
+                  <td className="p-2.5 text-center font-mono text-sm tracking-widest text-gold font-bold">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        maxLength={8}
+                        value={pinVal}
+                        onChange={(e) => setPinVal(e.target.value)}
+                        className="field !py-0.5 !px-2 w-20 text-center font-mono text-sm"
+                        autoFocus
+                      />
+                    ) : (
+                      currentPin
+                    )}
+                  </td>
+                  <td className="p-2.5 text-right">
+                    {isEditing ? (
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          className="btn btn-emerald !py-0.5 !px-2 text-xs"
+                          onClick={() => savePin(c.name)}
+                          disabled={!pinVal.trim()}
+                        >
+                          Save
+                        </button>
+                        <button
+                          className="btn !py-0.5 !px-2 text-xs"
+                          onClick={() => {
+                            setEditCountry(null);
+                            setPinVal('');
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="btn !py-0.5 !px-2.5 text-[11px]"
+                        onClick={() => {
+                          setEditCountry(c.name);
+                          setPinVal(currentPin);
+                        }}
+                      >
+                        Change PIN
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
   );
 }
 
@@ -549,7 +699,7 @@ export default function Admin() {
   if (!isChair && !localUnlocked) return <PinGate onSuccess={() => setLocalUnlocked(true)} />;
   const pendingMotions = state.motions.filter((m) => m.status === 'PENDING').length;
   const pendingTrades =
-    state.trades.filter((t) => t.status === 'PENDING').length +
+    state.trades.filter((t) => t.status === 'AWAITING_CHAIR' || t.status === 'PENDING').length +
     state.grainContracts.filter((g) => g.status === 'PENDING').length +
     state.directives.filter((d) => d.status === 'PENDING').length;
   const badge = (id: Tab) => (id === 'motions' ? pendingMotions : id === 'trades' ? pendingTrades : id === 'timer' ? state.committeeState.gslRequests.length : 0);
@@ -584,6 +734,7 @@ export default function Admin() {
       {tab === 'news' && <NewsTab />}
       {tab === 'trades' && <TradesTab />}
       {tab === 'crisis' && <SwanTab />}
+      {tab === 'security' && <SecurityTab />}
     </div>
   );
 }
@@ -596,4 +747,5 @@ export {
   TradesTab as TradesDirectives,
   SwanTab as BigBullshitArea,
   SwanTab as BlackSwan,
+  SecurityTab as SecurityPins,
 };

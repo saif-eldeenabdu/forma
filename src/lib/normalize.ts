@@ -1,5 +1,6 @@
 import type { CommitteeState, Currency, GrainStock, RootState } from './types';
 import { createSeed } from './seed';
+import { DEFAULT_DELEGATION_PINS } from '../data/countries';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -62,6 +63,12 @@ export function normalize(raw: unknown): RootState {
     grainStockpiles[country] = { ...base, ...(rawStock[country] ?? {}) };
   }
 
+  const rawPins = (r.delegationPins ?? {}) as Record<string, string>;
+  const delegationPins: Record<string, string> = {
+    ...DEFAULT_DELEGATION_PINS,
+    ...rawPins,
+  };
+
   return {
     committeeState,
     currencies,
@@ -71,5 +78,6 @@ export function normalize(raw: unknown): RootState {
     directives: toArray<any>(r.directives).sort(byTime('createdAt')),
     grainStockpiles,
     grainContracts: toArray<any>(r.grainContracts).sort(byTime('createdAt')),
+    delegationPins,
   };
 }
