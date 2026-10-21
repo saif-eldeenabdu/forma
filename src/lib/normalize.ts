@@ -1,6 +1,7 @@
-import type { CommitteeState, Currency, GrainStock, RootState } from './types';
+import type { CommitteeState, Currency, DelegationPortfolio, ExchangeState, ExchangeTicker, GrainStock, RootState, TickerSymbol } from './types';
 import { createSeed } from './seed';
 import { DEFAULT_DELEGATION_PINS } from '../data/countries';
+import { defaultPortfolio, TICKER_SYMBOLS } from '../data/exchange';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -69,6 +70,49 @@ export function normalize(raw: unknown): RootState {
     ...rawPins,
   };
 
+  const rawExchange = (r.exchangeState ?? {}) as Record<string, any>;
+  const marketStatus = rawExchange.marketStatus === 'CLOSED' ? 'CLOSED' : 'OPEN';
+
+  const rawTickers = (rawExchange.tickers ?? {}) as Record<string, any>;
+  const tickers: Record<TickerSymbol, ExchangeTicker> = {} as Record<TickerSymbol, ExchangeTicker>;
+  for (const sym of TICKER_SYMBOLS) {
+    const base = seed.exchangeState.tickers[sym];
+    const rt = rawTickers[sym] ?? base;
+    const hist = toArray<number>(rt.history);
+    tickers[sym] = {
+      ...base,
+      ...rt,
+      history: hist.length ? hist : base.history,
+    };
+  }
+
+  const rawPortfolios = (rawExchange.portfolios ?? {}) as Record<string, any>;
+  const portfolios: Record<string, DelegationPortfolio> = {};
+  for (const [country, base] of Object.entries(seed.exchangeState.portfolios)) {
+    const rp = rawPortfolios[country] ?? {};
+    portfolios[country] = {
+      cash: typeof rp.cash === 'number' ? rp.cash : base.cash,
+      holdings: { ...base.holdings, ...(rp.holdings ?? {}) },
+      shortAvgPrice: { ...(base.shortAvgPrice ?? {}), ...(rp.shortAvgPrice ?? {}) },
+    };
+  }
+  for (const [country, rp] of Object.entries(rawPortfolios)) {
+    if (!portfolios[country] && rp) {
+      const base = defaultPortfolio();
+      portfolios[country] = {
+        cash: typeof rp.cash === 'number' ? rp.cash : base.cash,
+        holdings: { ...base.holdings, ...(rp.holdings ?? {}) },
+        shortAvgPrice: { ...(base.shortAvgPrice ?? {}), ...(rp.shortAvgPrice ?? {}) },
+      };
+    }
+  }
+
+  const exchangeState: ExchangeState = {
+    marketStatus,
+    tickers,
+    portfolios,
+  };
+
   return {
     committeeState,
     currencies,
@@ -79,5 +123,6 @@ export function normalize(raw: unknown): RootState {
     grainStockpiles,
     grainContracts: toArray<any>(r.grainContracts).sort(byTime('createdAt')),
     delegationPins,
+    exchangeState,
   };
 }

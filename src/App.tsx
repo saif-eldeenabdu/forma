@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 
 const Floor = lazy(() => import('./pages/Floor'));
+const Exchange = lazy(() => import('./pages/Exchange'));
 const Trade = lazy(() => import('./pages/Trade'));
 const Dossiers = lazy(() => import('./pages/Dossiers'));
 const Briefing = lazy(() => import('./pages/Briefing'));
@@ -21,6 +22,7 @@ export default function App() {
             <Route element={<Layout />}>
               <Route index element={<Dashboard />} />
               <Route path="floor" element={<Floor />} />
+              <Route path="exchange" element={<Exchange />} />
               <Route path="trade" element={<Trade />} />
               <Route path="dossiers" element={<Dossiers />} />
               <Route path="briefing" element={<Briefing />} />

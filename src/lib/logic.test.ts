@@ -5,6 +5,7 @@ import { applyUpdates, toDbForm } from './backend';
 import { normalize, toArray } from './normalize';
 import { applyValueChange } from './markets';
 import { createSeed } from './seed';
+import { calculatePortfolioValue, DEFAULT_TICKERS } from '../data/exchange';
 import type { Motion, TimerState } from './types';
 
 const base: TimerState = {
@@ -222,5 +223,57 @@ describe('delegation PINs & trade lifecycle', () => {
     expect(s.trades[2].status).toBe('APPROVED');
   });
 });
+
+describe('NDB Sovereign Exchange', () => {
+  it('initializes exchangeState with 5 tickers, OPEN status, and 22 portfolios', () => {
+    const s = normalize(null);
+    expect(s.exchangeState.marketStatus).toBe('OPEN');
+    expect(Object.keys(s.exchangeState.tickers)).toEqual(['GOLD', 'UST', 'URALS', 'AGRI', 'TECH']);
+    expect(s.exchangeState.tickers.GOLD.currentPrice).toBe(2400);
+    expect(s.exchangeState.tickers.UST.currentPrice).toBe(100);
+    expect(s.exchangeState.tickers.URALS.currentPrice).toBe(75);
+    expect(s.exchangeState.tickers.AGRI.currentPrice).toBe(450);
+    expect(s.exchangeState.tickers.TECH.currentPrice).toBe(120);
+
+    expect(s.exchangeState.portfolios['Brazil'].cash).toBe(10_000_000);
+    expect(s.exchangeState.portfolios['China'].cash).toBe(10_000_000);
+    expect(s.exchangeState.portfolios['Russian Federation'].holdings.GOLD).toBe(0);
+  });
+
+  it('normalizes market status correctly when closed', () => {
+    const raw = toDbForm(createSeed()) as any;
+    raw.exchangeState = { marketStatus: 'CLOSED' };
+    const s = normalize(raw);
+    expect(s.exchangeState.marketStatus).toBe('CLOSED');
+  });
+
+  it('calculates portfolio valuation accurately for long, short, and cash positions', () => {
+    const tickers = { ...DEFAULT_TICKERS };
+
+    // Pure cash
+    const pf1 = { cash: 10_000_000, holdings: { GOLD: 0, UST: 0, URALS: 0, AGRI: 0, TECH: 0 } };
+    expect(calculatePortfolioValue(pf1, tickers)).toBe(10_000_000);
+
+    // Long 100 GOLD @ 2400 ($240,000) with 9,760,000 cash -> Total 10,000,000
+    const pf2 = { cash: 9_760_000, holdings: { GOLD: 100, UST: 0, URALS: 0, AGRI: 0, TECH: 0 } };
+    expect(calculatePortfolioValue(pf2, tickers)).toBe(10_000_000);
+
+    // If GOLD price rises to 3,000
+    const rallyTickers = { ...tickers, GOLD: { ...tickers.GOLD, currentPrice: 3000 } };
+    expect(calculatePortfolioValue(pf2, rallyTickers)).toBe(10_060_000);
+
+    // Short 100 GOLD @ 2400 (deducted 240,000 margin, 9,760,000 cash remaining).
+    // If GOLD price crashes to 2,000, short position value is: 100 * (2*2400 - 2000) = 280,000.
+    // Total net worth = 9,760,000 + 280,000 = 10,040,000 ($40,000 profit).
+    const pfShort = {
+      cash: 9_760_000,
+      holdings: { GOLD: -100, UST: 0, URALS: 0, AGRI: 0, TECH: 0 },
+      shortAvgPrice: { GOLD: 2400, UST: 0, URALS: 0, AGRI: 0, TECH: 0 },
+    };
+    const crashTickers = { ...tickers, GOLD: { ...tickers.GOLD, currentPrice: 2000 } };
+    expect(calculatePortfolioValue(pfShort, crashTickers)).toBe(10_040_000);
+  });
+});
+
 
 

@@ -16,16 +16,20 @@ import { applyValueChange, clamp, PEGGED } from './markets';
 import { uid } from './motions';
 import { byName, COUNTRY_NAMES, DEFAULT_DELEGATION_PINS } from '../data/countries';
 import { BRICS_PAY_ADOPTION_BOOST, USD_SURCHARGE_PCT, defaultStock, fmtMT, grainType } from '../data/grain';
+import { DEFAULT_TICKERS, defaultPortfolio } from '../data/exchange';
 import type {
   CrisisAlert,
+  DelegationPortfolio,
   GrainCommodity,
   GrainSettlement,
+  MarketStatus,
   Mode,
   Motion,
   MotionType,
   RootState,
   Severity,
   SuezCurrency,
+  TickerSymbol,
   TimerType,
   Trade,
   TradeKind,
@@ -94,6 +98,10 @@ export interface Actions {
   // grain
   submitGrain(g: { importer: string; exporter: string; commodity: GrainCommodity; quantityMT: number; settlement: GrainSettlement }): void;
   resolveGrain(id: string, approved: boolean): void;
+  // exchange
+  executeExchangeOrder(order: { ticker: TickerSymbol; action: 'BUY' | 'SELL' | 'SHORT'; quantity: number; country: string }): void;
+  setMarketStatus(status: MarketStatus): void;
+  shiftTickerPrice(symbol: TickerSymbol, pctChange: number): void;
   // toast
   showToast(msg: string): void;
 }
@@ -748,6 +756,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           grainStockpiles: seed.grainStockpiles,
           grainContracts: null,
           delegationPins: seed.delegationPins,
+          exchangeState: seed.exchangeState,
         });
         showToast('DATA RESET: All state restored to initial seed');
       },
@@ -756,6 +765,140 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (!p) return;
         write({ [`delegationPins/${country}`]: p });
         showToast(`PIN UPDATED FOR ${country.toUpperCase()}`);
+      },
+      executeExchangeOrder(order) {
+        const { ticker, action, quantity, country } = order;
+        if (!country) {
+          showToast('AUTHENTICATION REQUIRED: Claim a delegation before trading');
+          return;
+        }
+        const S_state = S();
+        if (S_state.exchangeState.marketStatus !== 'OPEN') {
+          showToast('MARKET CLOSED: Sovereign Exchange is currently closed');
+          return;
+        }
+        const qty = Math.floor(quantity);
+        if (qty <= 0) {
+          showToast('INVALID ORDER: Quantity must be at least 1');
+          return;
+        }
+
+        const pf = S_state.exchangeState.portfolios[country] ?? defaultPortfolio();
+        const currentQty = pf.holdings[ticker] ?? 0;
+        const tickerData = S_state.exchangeState.tickers[ticker] ?? DEFAULT_TICKERS[ticker];
+        const price = tickerData.currentPrice;
+
+        let newCash = pf.cash;
+        let newQty = currentQty;
+        const shortPrices: Record<TickerSymbol, number> = {
+          GOLD: 0,
+          UST: 0,
+          URALS: 0,
+          AGRI: 0,
+          TECH: 0,
+          ...(pf.shortAvgPrice || {}),
+        };
+
+        if (action === 'BUY') {
+          if (currentQty < 0) {
+            // Covering existing short position
+            const shortQty = Math.abs(currentQty);
+            const sp = shortPrices[ticker] ?? 0;
+            const shortAvg = sp > 0 ? sp : price;
+            const coverQty = Math.min(qty, shortQty);
+            const excessBuyQty = qty - coverQty;
+
+            // Margin released was coverQty * shortAvg. Cost to buy back is coverQty * price.
+            // Net cash change = coverQty * (shortAvg - price) - excessBuyQty * price.
+            const cashDiff = coverQty * (shortAvg - price) - excessBuyQty * price;
+            if (newCash + cashDiff < 0) {
+              showToast(`INSUFFICIENT FUNDS: Need $${Math.abs(Math.round(cashDiff)).toLocaleString()}`);
+              return;
+            }
+            newCash += cashDiff;
+            newQty = currentQty + qty;
+            if (newQty >= 0) {
+              shortPrices[ticker] = 0;
+            }
+          } else {
+            // Standard long buy
+            const cost = qty * price;
+            if (newCash < cost) {
+              showToast(`INSUFFICIENT FUNDS: Need $${Math.round(cost).toLocaleString()}`);
+              return;
+            }
+            newCash -= cost;
+            newQty = currentQty + qty;
+          }
+        } else if (action === 'SELL') {
+          if (currentQty <= 0) {
+            showToast('NO LONG HOLDINGS: Use SHORT to open a short position');
+            return;
+          }
+          if (qty > currentQty) {
+            showToast(`EXCEEDS HOLDINGS: You only hold ${currentQty} ${ticker}`);
+            return;
+          }
+          const proceeds = qty * price;
+          newCash += proceeds;
+          newQty = currentQty - qty;
+        } else if (action === 'SHORT') {
+          // Open or increase short position: deduct margin = qty * price
+          const margin = qty * price;
+          if (newCash < margin) {
+            showToast(`INSUFFICIENT MARGIN: Need $${Math.round(margin).toLocaleString()} cash margin`);
+            return;
+          }
+          newCash -= margin;
+          const currentShortQty = Math.abs(Math.min(0, currentQty));
+          const sp = shortPrices[ticker] ?? 0;
+          const oldShortAvg = sp > 0 ? sp : price;
+          const newShortAvg = (currentShortQty * oldShortAvg + qty * price) / (currentShortQty + qty);
+          shortPrices[ticker] = Math.round(newShortAvg * 100) / 100;
+          newQty = currentQty - qty;
+        }
+
+        const updatedHoldings: Record<TickerSymbol, number> = {
+          GOLD: pf.holdings?.GOLD ?? 0,
+          UST: pf.holdings?.UST ?? 0,
+          URALS: pf.holdings?.URALS ?? 0,
+          AGRI: pf.holdings?.AGRI ?? 0,
+          TECH: pf.holdings?.TECH ?? 0,
+        };
+        updatedHoldings[ticker] = newQty;
+
+        const updatedPortfolio: DelegationPortfolio = {
+          ...pf,
+          cash: Math.round(newCash * 100) / 100,
+          holdings: updatedHoldings,
+          shortAvgPrice: shortPrices,
+        };
+
+        write({
+          [`exchangeState/portfolios/${country}`]: updatedPortfolio,
+        });
+
+        showToast(`ORDER EXECUTED: ${action} ${qty} ${ticker} @ $${price.toLocaleString()}`);
+      },
+      setMarketStatus(status) {
+        write({ 'exchangeState/marketStatus': status });
+        showToast(`SOVEREIGN EXCHANGE: Market is now ${status}`);
+      },
+      shiftTickerPrice(symbol, pctChange) {
+        const S_state = S();
+        const t = S_state.exchangeState.tickers[symbol] ?? DEFAULT_TICKERS[symbol];
+        const newPrice = Math.max(1, Math.round(t.currentPrice * (1 + pctChange / 100) * 100) / 100);
+        const baseline = t.history[0] || t.currentPrice;
+        const newChange24h = Math.round(((newPrice - baseline) / baseline) * 1000) / 10;
+        const newHistory = [...(t.history || []), newPrice].slice(-14);
+
+        const u: Updates = {
+          [`exchangeState/tickers/${symbol}/currentPrice`]: newPrice,
+          [`exchangeState/tickers/${symbol}/change24h`]: newChange24h,
+          [`exchangeState/tickers/${symbol}/history`]: newHistory,
+        };
+        write(u);
+        showToast(`MARKET SHIFT: ${symbol} ${pctChange >= 0 ? '+' : ''}${pctChange}% ($${newPrice})`);
       },
       showToast(msg) {
         showToast(msg);

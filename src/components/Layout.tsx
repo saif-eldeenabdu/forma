@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Activity, BookOpen, Globe2, Landmark, Lock, Repeat, ScrollText, Volume2, VolumeX, X, Gavel } from 'lucide-react';
+import { Activity, BookOpen, Globe2, Landmark, Lock, Repeat, ScrollText, Volume2, VolumeX, X, Gavel, TrendingUp } from 'lucide-react';
 import { useNow, useStore } from '../lib/store';
 import { FULL_MEMBERS, PARTNERS } from '../data/countries';
 import { isMuted, setMuted } from '../lib/audio';
@@ -10,6 +10,7 @@ import { CrisisOverlay, MotionFlash, ActiveMotionBanner } from './Overlays';
 const NAV = [
   { to: '/', label: 'Terminal', icon: Activity, end: true },
   { to: '/floor', label: 'Floor', icon: Gavel },
+  { to: '/exchange', label: 'Exchange', icon: TrendingUp },
   { to: '/trade', label: 'Trade', icon: Repeat },
   { to: '/dossiers', label: 'Dossiers', icon: Landmark },
   { to: '/briefing', label: 'Briefing', icon: BookOpen },
@@ -369,7 +370,7 @@ export default function Layout() {
       </footer>
 
       {/* mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-hairline bg-obsidian md:hidden" aria-label="Mobile">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-hairline bg-obsidian md:hidden" aria-label="Mobile">
         {NAV.map((n) => (
           <NavLink
             key={n.to}

@@ -1,21 +1,23 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, Check, Gavel, Landmark, Lock, Megaphone, Pause, Play, RotateCcw, ShieldCheck, SkipForward, Skull, Trash2, TrendingUp, X } from 'lucide-react';
-import { FULL_MEMBERS, PARTNERS, DEFAULT_DELEGATION_PINS } from '../data/countries';
+import { AlertTriangle, ArrowDown, ArrowUp, Check, DollarSign, Gavel, Landmark, Lock, Megaphone, Pause, Play, RotateCcw, ShieldCheck, SkipForward, Skull, Trash2, TrendingUp, X } from 'lucide-react';
+import { COUNTRIES, FULL_MEMBERS, PARTNERS, DEFAULT_DELEGATION_PINS } from '../data/countries';
+import { DEFAULT_TICKERS, TICKER_SYMBOLS, calculatePortfolioValue, STARTING_CASH } from '../data/exchange';
 import { BRICS_CLEAR_QUORUM, useNow, useStore } from '../lib/store';
 import { fmtMT, grainType } from '../data/grain';
 import { deriveTimer } from '../lib/timer';
 import { sortMotions } from '../lib/motions';
 import { fmtRate } from '../lib/markets';
-import type { Severity, TimerType } from '../lib/types';
+import type { Severity, TickerSymbol, TimerType } from '../lib/types';
 import { Field, PageHeader, Panel, fmtSecondsLabel } from '../components/ui';
 import { TimerPanel } from '../components/Timer';
 import { motionLine } from '../components/Overlays';
 
-type Tab = 'timer' | 'motions' | 'markets' | 'news' | 'trades' | 'crisis' | 'security';
+type Tab = 'timer' | 'motions' | 'markets' | 'marketMaker' | 'news' | 'trades' | 'crisis' | 'security';
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'timer', label: 'Timers & GSL', icon: <Play size={13} /> },
   { id: 'motions', label: 'Motions', icon: <Gavel size={13} /> },
   { id: 'markets', label: 'Markets & Currencies', icon: <TrendingUp size={13} /> },
+  { id: 'marketMaker', label: 'Market Maker', icon: <DollarSign size={13} /> },
   { id: 'news', label: 'News & Intel', icon: <Megaphone size={13} /> },
   { id: 'trades', label: 'Trades & Directives', icon: <Landmark size={13} /> },
   { id: 'crisis', label: 'Big Bullshit Area', icon: <Skull size={13} /> },
@@ -691,6 +693,273 @@ function SwanTab() {
   );
 }
 
+/* ------------------------------ Market Maker ------------------------------ */
+function MarketMakerTab() {
+  const { state, actions } = useStore();
+  const { exchangeState } = state;
+  const { marketStatus, tickers, portfolios } = exchangeState;
+  const [customShifts, setCustomShifts] = useState<Record<TickerSymbol, string>>({
+    GOLD: '10',
+    UST: '-10',
+    URALS: '10',
+    AGRI: '-10',
+    TECH: '10',
+  });
+
+  // Calculate Leaderboard rankings
+  const leaderboard = COUNTRIES.map((c) => {
+    const pf = portfolios[c.name] ?? { cash: STARTING_CASH, holdings: { GOLD: 0, UST: 0, URALS: 0, AGRI: 0, TECH: 0 } };
+    const netWorth = calculatePortfolioValue(pf, tickers);
+    const pnl = netWorth - STARTING_CASH;
+    const pnlPct = ((pnl / STARTING_CASH) * 100).toFixed(2);
+    return {
+      country: c,
+      portfolio: pf,
+      netWorth,
+      pnl,
+      pnlPct,
+    };
+  }).sort((a, b) => b.netWorth - a.netWorth);
+
+  const toggleMarket = () => {
+    actions.setMarketStatus(marketStatus === 'OPEN' ? 'CLOSED' : 'OPEN');
+  };
+
+  const handleCustomShift = (sym: TickerSymbol, dir: 1 | -1) => {
+    const val = parseFloat(customShifts[sym]);
+    if (isNaN(val) || val <= 0) return;
+    actions.shiftTickerPrice(sym, val * dir);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Master Market Floor Controller */}
+      <Panel title="Sovereign Exchange // Floor Control">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="label !text-gold">EXCHANGE STATUS:</span>
+              <span
+                className={`font-mono text-sm font-bold uppercase tracking-wider ${
+                  marketStatus === 'OPEN' ? 'text-emerald' : 'text-crimson'
+                }`}
+              >
+                ● {marketStatus === 'OPEN' ? 'FLOOR OPEN // ACTIVE TRADING' : 'FLOOR HALTED // TRADING CLOSED'}
+              </span>
+            </div>
+            <p className="text-xs text-sage">
+              When closed, all delegate BUY, SELL, and SHORT requests are immediately blocked across the network.
+            </p>
+          </div>
+          <button
+            onClick={toggleMarket}
+            className={`btn font-mono text-xs font-bold uppercase tracking-[0.14em] px-6 py-2.5 ${
+              marketStatus === 'OPEN'
+                ? 'btn-crimson'
+                : 'btn-emerald'
+            }`}
+          >
+            {marketStatus === 'OPEN' ? 'Halt Trading Floor' : 'Open Trading Floor'}
+          </button>
+        </div>
+      </Panel>
+
+      {/* Asset Manipulation Grid */}
+      <Panel title="Market Maker // Asset Price Manipulation">
+        <p className="text-xs text-sage mb-4">
+          Manipulate sovereign commodity and bond valuations. Price shocks immediately update charts, trigger margin/equity swings, and re-rank the Insider Trading Leaderboard.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {TICKER_SYMBOLS.map((sym) => {
+            const t = tickers[sym] ?? DEFAULT_TICKERS[sym];
+            const isPos = t.change24h >= 0;
+            return (
+              <div key={sym} className="rounded border border-hairline bg-charcoal p-3 space-y-3">
+                <div className="flex items-start justify-between border-b border-hairline pb-2">
+                  <div>
+                    <span className="font-mono text-sm font-bold text-ivory">{t.symbol}</span>
+                    <p className="text-[10px] text-sage">{t.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono text-base font-bold tabular text-ivory">
+                      ${t.currentPrice.toLocaleString()}
+                    </span>
+                    <p className={`font-mono text-[10px] ${isPos ? 'text-emerald' : 'text-crimson'}`}>
+                      {isPos ? '+' : ''}{t.change24h}%
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick Shock Buttons */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-sage">
+                    <span>CRASH / DUMP</span>
+                    <span>PUMP / INFLATE</span>
+                  </div>
+                  <div className="grid grid-cols-6 gap-1 font-mono text-xs">
+                    <button
+                      onClick={() => actions.shiftTickerPrice(sym, -25)}
+                      className="btn !px-1 !py-1 text-crimson hover:bg-crimson/20"
+                    >
+                      -25%
+                    </button>
+                    <button
+                      onClick={() => actions.shiftTickerPrice(sym, -10)}
+                      className="btn !px-1 !py-1 text-crimson hover:bg-crimson/20"
+                    >
+                      -10%
+                    </button>
+                    <button
+                      onClick={() => actions.shiftTickerPrice(sym, -5)}
+                      className="btn !px-1 !py-1 text-crimson hover:bg-crimson/20"
+                    >
+                      -5%
+                    </button>
+                    <button
+                      onClick={() => actions.shiftTickerPrice(sym, 5)}
+                      className="btn !px-1 !py-1 text-emerald hover:bg-emerald/20"
+                    >
+                      +5%
+                    </button>
+                    <button
+                      onClick={() => actions.shiftTickerPrice(sym, 10)}
+                      className="btn !px-1 !py-1 text-emerald hover:bg-emerald/20"
+                    >
+                      +10%
+                    </button>
+                    <button
+                      onClick={() => actions.shiftTickerPrice(sym, 25)}
+                      className="btn !px-1 !py-1 text-emerald hover:bg-emerald/20"
+                    >
+                      +25%
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom % Shift */}
+                <div className="flex items-center gap-1.5 pt-1">
+                  <span className="font-mono text-[10px] text-sage">CUSTOM %:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="500"
+                    value={customShifts[sym] || ''}
+                    onChange={(e) =>
+                      setCustomShifts((prev) => ({ ...prev, [sym]: e.target.value }))
+                    }
+                    className="field !py-0.5 !px-2 font-mono text-xs tabular w-16"
+                  />
+                  <button
+                    onClick={() => handleCustomShift(sym, -1)}
+                    className="btn !px-2 !py-0.5 text-xs text-crimson hover:bg-crimson/15"
+                  >
+                    Crash
+                  </button>
+                  <button
+                    onClick={() => handleCustomShift(sym, 1)}
+                    className="btn !px-2 !py-0.5 text-xs text-emerald hover:bg-emerald/15"
+                  >
+                    Pump
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Panel>
+
+      {/* Insider Trading Leaderboard */}
+      <Panel title="NDB Insider Trading // Delegation Wealth Leaderboard">
+        <p className="text-xs text-sage mb-3">
+          Live real-time ranking of all 22 committee delegations ranked by Total Sovereign Net Worth (Starting capital: $10,000,000).
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left font-mono text-xs">
+            <thead>
+              <tr className="border-b border-hairline text-[10px] uppercase text-sage">
+                <th className="py-2 px-2">Rank</th>
+                <th className="py-2 px-2">Delegation</th>
+                <th className="py-2 px-2">Tier</th>
+                <th className="py-2 px-2 text-right">Cash Balance</th>
+                <th className="py-2 px-2">Active Positions</th>
+                <th className="py-2 px-2 text-right">Net Worth</th>
+                <th className="py-2 px-2 text-right">Total P&L</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-hairline">
+              {leaderboard.map((item, idx) => {
+                const isProfit = item.pnl >= 0;
+                const hasPositions = TICKER_SYMBOLS.some((sym) => (item.portfolio.holdings?.[sym] ?? 0) !== 0);
+
+                return (
+                  <tr key={item.country.name} className="hover:bg-charcoal/50 transition-colors">
+                    <td className="py-2.5 px-2 font-bold text-ivory">
+                      #{idx + 1}
+                    </td>
+                    <td className="py-2.5 px-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[10px] text-gold font-bold px-1 py-0.5 border border-gold/30 bg-gold/10">
+                          {item.country.code}
+                        </span>
+                        <span className="font-bold text-ivory">{item.country.name}</span>
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-2">
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                          item.country.tier === 'FULL BRICS MEMBER'
+                            ? 'bg-gold/15 text-gold border border-gold/30'
+                            : 'bg-emerald/15 text-emerald border border-emerald/30'
+                        }`}
+                      >
+                        {item.country.tier === 'FULL BRICS MEMBER' ? 'FULL BRICS' : 'PARTNER'}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-2 text-right tabular text-sage">
+                      ${Math.round(item.portfolio.cash).toLocaleString()}
+                    </td>
+                    <td className="py-2.5 px-2">
+                      {!hasPositions ? (
+                        <span className="text-sage/60">No open positions</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {TICKER_SYMBOLS.map((sym) => {
+                            const qty = item.portfolio.holdings?.[sym] ?? 0;
+                            if (qty === 0) return null;
+                            const isShort = qty < 0;
+                            return (
+                              <span
+                                key={sym}
+                                className={`rounded px-1 text-[10px] font-bold ${
+                                  isShort
+                                    ? 'bg-crimson/15 text-crimson border border-crimson/30'
+                                    : 'bg-emerald/15 text-emerald border border-emerald/30'
+                                }`}
+                              >
+                                {isShort ? `${qty} ${sym}` : `+${qty} ${sym}`}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-2 text-right font-bold tabular text-ivory">
+                      ${Math.round(item.netWorth).toLocaleString()}
+                    </td>
+                    <td className={`py-2.5 px-2 text-right font-bold tabular ${isProfit ? 'text-emerald' : 'text-crimson'}`}>
+                      {isProfit ? '+' : ''}${Math.round(item.pnl).toLocaleString()} ({isProfit ? '+' : ''}{item.pnlPct}%)
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
 /* ------------------------------ Page ------------------------------ */
 export default function Admin() {
   const { isChair, state, toast } = useStore();
@@ -731,6 +1000,7 @@ export default function Admin() {
       {tab === 'timer' && <TimerTab />}
       {tab === 'motions' && <MotionsTab />}
       {tab === 'markets' && <MarketsTab />}
+      {tab === 'marketMaker' && <MarketMakerTab />}
       {tab === 'news' && <NewsTab />}
       {tab === 'trades' && <TradesTab />}
       {tab === 'crisis' && <SwanTab />}
@@ -743,6 +1013,7 @@ export {
   TimerTab as TimersGsl,
   MotionsTab as Motions,
   MarketsTab as Markets,
+  MarketMakerTab as MarketMaker,
   NewsTab as NewsTicker,
   TradesTab as TradesDirectives,
   SwanTab as BigBullshitArea,

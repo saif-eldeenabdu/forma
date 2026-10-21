@@ -143,6 +143,32 @@ export interface Directive {
   status?: 'PENDING' | 'APPROVED' | 'DISMISSED';
 }
 
+export type TickerSymbol = 'GOLD' | 'UST' | 'URALS' | 'AGRI' | 'TECH';
+
+export interface ExchangeTicker {
+  symbol: TickerSymbol;
+  name: string;
+  currentPrice: number;
+  change24h: number;
+  history: number[];
+  unit: string;
+  color: string;
+}
+
+export interface DelegationPortfolio {
+  cash: number;
+  holdings: Record<TickerSymbol, number>;
+  shortAvgPrice?: Record<TickerSymbol, number>;
+}
+
+export type MarketStatus = 'OPEN' | 'CLOSED';
+
+export interface ExchangeState {
+  marketStatus: MarketStatus;
+  tickers: Record<TickerSymbol, ExchangeTicker>;
+  portfolios: Record<string, DelegationPortfolio>;
+}
+
 export interface RootState {
   committeeState: CommitteeState;
   currencies: Record<string, Currency>;
@@ -153,6 +179,7 @@ export interface RootState {
   grainStockpiles: Record<string, GrainStock>;
   grainContracts: GrainContract[];
   delegationPins: Record<string, string>;
+  exchangeState: ExchangeState;
 }
 
 /** Multi-path update map: `a/b/c` -> value (null deletes). Mirrors Firebase `update()`. */

@@ -1,6 +1,7 @@
 import type { RootState } from './types';
 import { COUNTRY_NAMES, DEFAULT_DELEGATION_PINS } from '../data/countries';
 import { defaultStock } from '../data/grain';
+import { DEFAULT_TICKERS, defaultPortfolio } from '../data/exchange';
 
 /** Exact initial RTDB structure from the master spec (plus Chair-engine nodes). */
 export function createSeed(now = Date.now()): RootState {
@@ -68,5 +69,10 @@ export function createSeed(now = Date.now()): RootState {
     grainStockpiles: Object.fromEntries(COUNTRY_NAMES.map((c) => [c, defaultStock(c)])),
     grainContracts: [],
     delegationPins: { ...DEFAULT_DELEGATION_PINS },
+    exchangeState: {
+      marketStatus: 'OPEN',
+      tickers: { ...DEFAULT_TICKERS },
+      portfolios: Object.fromEntries(COUNTRY_NAMES.map((c) => [c, defaultPortfolio()])),
+    },
   };
 }
