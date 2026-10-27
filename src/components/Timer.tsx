@@ -1,57 +1,39 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Hand, HelpCircle, Mic, Users } from 'lucide-react';
-import { COUNTRY_NAMES, useNow, useStore } from '../lib/store';
+import { COUNTRY_NAMES, useStore } from '../lib/store';
 import { deriveTimer, fmtClock } from '../lib/timer';
 import { chime } from '../lib/audio';
 import { byName } from '../data/countries';
 import { Panel } from './ui';
+import type { TimerState } from '../lib/types';
 
 const TYPE_LABEL = { GSL: 'General Speakers List', MOD: 'Moderated Caucus', UNMOD: 'Unmoderated Caucus' } as const;
 
-export function TimerPanel() {
-  const { state, me, isChair, actions } = useStore();
-  const t = state.committeeState.timer;
-  const tick = useNow(100);
-  const d = deriveTimer(t, tick);
-  const [yieldTarget, setYieldTarget] = useState('');
+function TimerCountdown({ t }: { t: TimerState }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!t.isRunning) return;
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 200);
+    return () => clearInterval(interval);
+  }, [t.isRunning, t.lastUpdated]);
+
+  const d = deriveTimer(t, t.isRunning ? now : t.lastUpdated);
 
   useEffect(() => {
     if (d.expired && t.isRunning) chime('expire');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [d.expired && t.isRunning]);
+  }, [d.expired, t.isRunning]);
 
   const big = t.type === 'UNMOD' ? d.caucus : d.speaker;
   const bigTotal = t.type === 'UNMOD' ? t.modTotalSeconds : t.totalSeconds;
   const frac = bigTotal > 0 ? big / bigTotal : 0;
   const clr = big <= 0 ? 'text-crimson' : big <= 10 || frac <= 0.1 ? 'text-crimson' : frac <= 0.25 ? 'text-gold' : 'text-ivory';
-  const country = byName(t.currentSpeaker);
-  const canYield = (isChair || (me && me === t.currentSpeaker)) && t.type === 'GSL';
 
   return (
-    <Panel
-      title="Speech Timer"
-      tone={d.expired && t.isRunning ? 'crimson' : undefined}
-      right={
-        <span className="flex items-center gap-2 label">
-          <span className={`inline-block h-[7px] w-[7px] rounded-full ${d.running ? 'bg-emerald' : 'bg-sage/50'}`} />
-          {d.running ? 'Running' : d.expired ? 'Expired' : 'Paused'}
-        </span>
-      }
-    >
-      <p className="label !text-gold">{TYPE_LABEL[t.type]}</p>
-
-      {t.type !== 'UNMOD' ? (
-        <div className="mt-2 flex items-center gap-2">
-          <Mic size={14} className="text-sage" />
-          <span className="label">Has the floor</span>
-          <span className="font-serif text-2xl leading-none text-ivory">{t.currentSpeaker}</span>
-          {country && <span className="tabular text-[11px] text-sage">[{country.code}]</span>}
-        </div>
-      ) : (
-        <p className="mt-2 text-sm text-sage">Delegates leave their seats: form blocs, trade on BRICS-NET, write Working Papers.</p>
-      )}
-
+    <>
       <div className={`tabular mt-3 text-center text-[clamp(3.5rem,9vw,7.5rem)] font-medium leading-none ${clr} ${d.expired && t.isRunning ? 'blink' : ''}`}>
         {fmtClock(big)}
       </div>
@@ -66,6 +48,58 @@ export function TimerPanel() {
           <span className="tabular text-[11px] text-sage">/ {fmtClock(t.modTotalSeconds)}</span>
         </div>
       )}
+    </>
+  );
+}
+
+function TimerStatusBadge({ t }: { t: TimerState }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!t.isRunning) return;
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [t.isRunning, t.lastUpdated]);
+
+  const d = deriveTimer(t, t.isRunning ? now : t.lastUpdated);
+
+  return (
+    <span className="flex items-center gap-2 label">
+      <span className={`inline-block h-[7px] w-[7px] rounded-full ${d.running ? 'bg-emerald' : 'bg-sage/50'}`} />
+      {d.running ? 'Running' : d.expired ? 'Expired' : 'Paused'}
+    </span>
+  );
+}
+
+export const TimerPanel = memo(function TimerPanel() {
+  const { state, me, isChair, actions } = useStore();
+  const t = state.committeeState.timer;
+  const [yieldTarget, setYieldTarget] = useState('');
+
+  const country = byName(t.currentSpeaker);
+  const canYield = (isChair || (me && me === t.currentSpeaker)) && t.type === 'GSL';
+
+  return (
+    <Panel
+      title="Speech Timer"
+      right={<TimerStatusBadge t={t} />}
+    >
+      <p className="label !text-gold">{TYPE_LABEL[t.type]}</p>
+
+      {t.type !== 'UNMOD' ? (
+        <div className="mt-2 flex items-center gap-2">
+          <Mic size={14} className="text-sage" />
+          <span className="label">Has the floor</span>
+          <span className="font-serif text-2xl leading-none text-ivory">{t.currentSpeaker}</span>
+          {country && <span className="tabular text-[11px] text-sage">[{country.code}]</span>}
+        </div>
+      ) : (
+        <p className="mt-2 text-sm text-sage">Delegates leave their seats: form blocs, trade on BRICS-NET, write Working Papers.</p>
+      )}
+
+      <TimerCountdown t={t} />
 
       {t.type !== 'UNMOD' && (
         <div className="mt-3 flex items-center justify-between border-t border-hairline pt-2">
@@ -111,9 +145,9 @@ export function TimerPanel() {
       )}
     </Panel>
   );
-}
+});
 
-export function GslPanel() {
+export const GslPanel = memo(function GslPanel() {
   const { state, me } = useStore();
   const cs = state.committeeState;
   const queue = cs.gslQueue;
@@ -166,4 +200,4 @@ export function GslPanel() {
       </div>
     </Panel>
   );
-}
+});

@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Area, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { getReserves, isBankrupt, useFiatFrozen, useNow, useStore } from '../lib/store';
+import { getReserves, isBankrupt, useFiatFrozen, useStore } from '../lib/store';
 import { COUNTRIES, byCurrency } from '../data/countries';
 import { fmtClock } from '../lib/timer';
 import { AnimatedNumber, Panel, Sparkline } from '../components/ui';
@@ -14,7 +14,7 @@ const LINE_COLORS = [
   '#38BDF8', '#A78BFA', '#F472B6', '#FBBF24', '#34D399', '#818CF8', '#FB7185', '#2DD4BF', '#F97316', '#A3E635', '#60A5FA',
 ];
 
-function MacroBar() {
+const MacroBar = memo(function MacroBar() {
   const { state } = useStore();
   const cs = state.committeeState;
   const delta = cs.usdDominanceIndex - BASELINE_USD;
@@ -86,9 +86,9 @@ function MacroBar() {
       </Panel>
     </div>
   );
-}
+});
 
-function ExchangeMatrix({ selected, toggle }: { selected: string[]; toggle: (c: string) => void }) {
+const ExchangeMatrix = memo(function ExchangeMatrix({ selected, toggle }: { selected: string[]; toggle: (c: string) => void }) {
   const { state } = useStore();
   const frozen = useFiatFrozen();
   const cs = state.committeeState;
@@ -189,7 +189,7 @@ function ExchangeMatrix({ selected, toggle }: { selected: string[]; toggle: (c: 
                   {frozen ? '— —' : cur.change24h === 0 ? '— 0.00%' : `${up ? '▲' : '▼'} ${Math.abs(cur.change24h).toFixed(2)}%`}
                 </td>
                 <td className="px-3 py-2">
-                  <div className="flex justify-end">{frozen ? <span className="tabular text-xs text-crimson">NO DATA</span> : <Sparkline data={cur.history} color={color} />}</div>
+                  <div className="flex justify-end">{frozen ? <span className="tabular text-xs text-crimson">NO DATA</span> : <Sparkline data={cur.history.slice(-30)} color={color} />}</div>
                 </td>
               </tr>
             );
@@ -201,20 +201,22 @@ function ExchangeMatrix({ selected, toggle }: { selected: string[]; toggle: (c: 
       </p>
     </Panel>
   );
-}
+});
 
-function CompareChart({ selected }: { selected: string[] }) {
+const CompareChart = memo(function CompareChart({ selected }: { selected: string[] }) {
   const { state } = useStore();
   const frozen = useFiatFrozen();
   const codes = Object.keys(state.currencies);
 
   const data = useMemo(() => {
-    const maxLen = Math.max(...codes.map((c) => state.currencies[c].history.length));
+    const rawMaxLen = Math.max(...codes.map((c) => state.currencies[c].history.length));
+    const maxLen = Math.min(30, rawMaxLen);
     const rows: Record<string, number | string>[] = [];
     for (let i = 0; i < maxLen; i++) {
       const row: Record<string, number | string> = { t: i === maxLen - 1 ? 'NOW' : `T-${maxLen - 1 - i}` };
       for (const c of codes) {
-        const h = state.currencies[c].history;
+        const fullH = state.currencies[c].history;
+        const h = fullH.slice(-30);
         const j = i - (maxLen - h.length);
         if (j >= 0) row[c] = Math.round((h[0] / h[j]) * 10000) / 100; // value index: higher = stronger vs USD
       }
@@ -241,11 +243,11 @@ function CompareChart({ selected }: { selected: string[] }) {
                 labelStyle={{ color: '#8E9B94' }}
               />
               <Legend wrapperStyle={{ fontFamily: 'JetBrains Mono', fontSize: 10 }} />
-              {selected.length === 0 && <Area dataKey="__none" stroke="none" fill="none" />}
+              {selected.length === 0 && <Area dataKey="__none" stroke="none" fill="none" isAnimationActive={false} />}
               {codes
                 .filter((c) => selected.includes(c))
                 .map((c) => (
-                  <Line key={c} type="monotone" dataKey={c} stroke={LINE_COLORS[codes.indexOf(c) % LINE_COLORS.length]} strokeWidth={1.75} dot={false} isAnimationActive animationDuration={600} connectNulls />
+                  <Line key={c} type="monotone" dataKey={c} stroke={LINE_COLORS[codes.indexOf(c) % LINE_COLORS.length]} strokeWidth={1.75} dot={false} isAnimationActive={false} connectNulls />
                 ))}
             </ComposedChart>
           </ResponsiveContainer>
@@ -254,11 +256,24 @@ function CompareChart({ selected }: { selected: string[] }) {
       {selected.length === 0 && !frozen && <p className="text-xs text-sage">Toggle currencies in the matrix to plot them.</p>}
     </Panel>
   );
+});
+
+function SanctionCountdown({ until }: { until: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const left = Math.max(0, until - now) / 1000;
+  return (
+    <p className="tabular mt-1 text-[10px] text-crimson">
+      {left > 0 ? `BAIL-OUT WINDOW ${fmtClock(left)}` : 'BAIL-OUT WINDOW CLOSED'}
+    </p>
+  );
 }
 
-function Roster() {
+const Roster = memo(function Roster() {
   const { state } = useStore();
-  const tick = useNow(500);
   const cs = state.committeeState;
   const [filter, setFilter] = useState<'ALL' | 'MEMBERS' | 'PARTNERS'>('ALL');
 
@@ -300,7 +315,6 @@ function Roster() {
           const s = cs.sanctions[c.name];
           const isSanctioned = !!s || !!cs.sanctionedCountries?.includes(c.name);
           const speaking = cs.timer.currentSpeaker === c.name && cs.timer.type !== 'UNMOD';
-          const left = s ? Math.max(0, s.until - tick) / 1000 : 0;
           const isFull = c.tier === 'FULL BRICS MEMBER';
           const res = getReserves(state, c.name);
           const bankrupt = isBankrupt(state, c.name);
@@ -340,7 +354,7 @@ function Roster() {
                 ) : isSanctioned ? (
                   <>
                     <span className="stamp">Sanctioned // SWIFT cutoff</span>
-                    {s && <p className="tabular mt-1 text-[10px] text-crimson">{left > 0 ? `BAIL-OUT WINDOW ${fmtClock(left)}` : 'BAIL-OUT WINDOW CLOSED'}</p>}
+                    {s && <SanctionCountdown until={s.until} />}
                   </>
                 ) : cs.assetFreeze?.country === c.name ? (
                   <span className="stamp">Assets frozen // Clearing suspended</span>
@@ -356,9 +370,9 @@ function Roster() {
       </div>
     </Panel>
   );
-}
+});
 
-function CyberAttackOverlay() {
+const CyberAttackOverlay = memo(function CyberAttackOverlay() {
   const { state, actions, isChair } = useStore();
   const cs = state.committeeState;
   if (!cs.cyberAttackActive) return null;
@@ -425,7 +439,7 @@ function CyberAttackOverlay() {
       </div>
     </div>
   );
-}
+});
 
 export default function Dashboard() {
   const { state } = useStore();

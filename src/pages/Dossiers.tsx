@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Sparkles } from 'lucide-react';
 import { COUNTRIES, type Country } from '../data/countries';
@@ -117,6 +117,64 @@ function Modal({ c, onClose }: { c: Country; onClose: () => void }) {
   );
 }
 
+const DossierCard = memo(function DossierCard({
+  c,
+  sanctioned,
+  isFull,
+  isMe,
+  onOpen,
+}: {
+  c: Country;
+  sanctioned: boolean;
+  isFull: boolean;
+  isMe: boolean;
+  onOpen: (c: Country) => void;
+}) {
+  return (
+    <motion.button
+      layoutId={`dossier-${c.name}`}
+      onClick={() => onOpen(c)}
+      className={`panel group relative p-4 text-left transition-colors hover:border-gold ${sanctioned ? '!border-crimson' : ''}`}
+    >
+      <span className="xh -left-[4px] -top-[7px]">+</span>
+      <span className="xh -bottom-[7px] -right-[4px]">+</span>
+      <div className="flex items-center justify-between">
+        <span className="tabular text-[11px] text-sage">{c.code}</span>
+        <span
+          className={`border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider font-semibold ${
+            isFull
+              ? 'border-gold/70 bg-gold/15 text-gold'
+              : 'border-emerald/70 bg-emerald/15 text-emerald'
+          }`}
+        >
+          {isFull ? 'Full Member' : 'Partner'}
+        </span>
+      </div>
+      <h2 className="mt-3 text-2xl font-medium leading-tight">{c.name}</h2>
+      {isMe && <p className="label mt-1 !text-emerald">Your delegation</p>}
+      <p className="mt-2 line-clamp-2 text-xs text-sage">{c.role}</p>
+
+      <div className="mt-3 border-t border-hairline/80 pt-2">
+        <p className="label !text-[9px] text-emerald mb-1">Cheat sheet focus</p>
+        <p className="line-clamp-2 font-mono text-[11px] text-ivory/80">{c.strategy}</p>
+      </div>
+
+      <dl className="mt-3 grid grid-cols-2 gap-2 border-t border-hairline pt-3">
+        <div>
+          <dt className="label">GDP</dt>
+          <dd className="tabular text-xs">{c.gdp}</dd>
+        </div>
+        <div>
+          <dt className="label">Currency</dt>
+          <dd className="tabular text-xs text-gold">{c.currencyCode}</dd>
+        </div>
+      </dl>
+      {sanctioned && <span className="stamp mt-3">Sanctioned // SWIFT cutoff</span>}
+      <p className="label mt-3 text-sage group-hover:!text-gold">Open dossier &amp; strategy →</p>
+    </motion.button>
+  );
+});
+
 export default function Dossiers() {
   const { state, me } = useStore();
   const [open, setOpen] = useState<Country | null>(null);
@@ -169,48 +227,14 @@ export default function Dossiers() {
           const sanctioned = !!state.committeeState.sanctions[c.name];
           const isFull = c.tier === 'FULL BRICS MEMBER';
           return (
-            <motion.button
-              layoutId={`dossier-${c.name}`}
+            <DossierCard
               key={c.name}
-              onClick={() => setOpen(c)}
-              className={`panel group relative p-4 text-left transition-colors hover:border-gold ${sanctioned ? '!border-crimson' : ''}`}
-            >
-              <span className="xh -left-[4px] -top-[7px]">+</span>
-              <span className="xh -bottom-[7px] -right-[4px]">+</span>
-              <div className="flex items-center justify-between">
-                <span className="tabular text-[11px] text-sage">{c.code}</span>
-                <span
-                  className={`border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider font-semibold ${
-                    isFull
-                      ? 'border-gold/70 bg-gold/15 text-gold'
-                      : 'border-emerald/70 bg-emerald/15 text-emerald'
-                  }`}
-                >
-                  {isFull ? 'Full Member' : 'Partner'}
-                </span>
-              </div>
-              <h2 className="mt-3 text-2xl font-medium leading-tight">{c.name}</h2>
-              {me === c.name && <p className="label mt-1 !text-emerald">Your delegation</p>}
-              <p className="mt-2 line-clamp-2 text-xs text-sage">{c.role}</p>
-
-              <div className="mt-3 border-t border-hairline/80 pt-2">
-                <p className="label !text-[9px] text-emerald mb-1">Cheat sheet focus</p>
-                <p className="line-clamp-2 font-mono text-[11px] text-ivory/80">{c.strategy}</p>
-              </div>
-
-              <dl className="mt-3 grid grid-cols-2 gap-2 border-t border-hairline pt-3">
-                <div>
-                  <dt className="label">GDP</dt>
-                  <dd className="tabular text-xs">{c.gdp}</dd>
-                </div>
-                <div>
-                  <dt className="label">Currency</dt>
-                  <dd className="tabular text-xs text-gold">{c.currencyCode}</dd>
-                </div>
-              </dl>
-              {sanctioned && <span className="stamp mt-3">Sanctioned // SWIFT cutoff</span>}
-              <p className="label mt-3 text-sage group-hover:!text-gold">Open dossier &amp; strategy →</p>
-            </motion.button>
+              c={c}
+              sanctioned={sanctioned}
+              isFull={isFull}
+              isMe={me === c.name}
+              onOpen={setOpen}
+            />
           );
         })}
       </div>

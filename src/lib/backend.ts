@@ -55,7 +55,7 @@ const LS_KEY = 'brics-net:state:v1';
 const CHANNEL = 'brics-net:sync';
 
 export function createLocalBackend(): Backend {
-  const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(CHANNEL) : null;
+  let channel: BroadcastChannel | null = null;
   const listeners = new Set<(raw: unknown) => void>();
 
   const read = (): Record<string, unknown> | null => {
@@ -74,30 +74,72 @@ export function createLocalBackend(): Backend {
     listeners.forEach((l) => l(root));
   };
 
-  channel?.addEventListener('message', emit);
-  window.addEventListener('storage', (e) => {
+  const onStorage = (e: StorageEvent) => {
     if (e.key === LS_KEY) emit();
-  });
+  };
+
+  const attach = () => {
+    if (!channel && typeof BroadcastChannel !== 'undefined') {
+      try {
+        channel = new BroadcastChannel(CHANNEL);
+        channel.addEventListener('message', emit);
+      } catch {
+        channel = null;
+      }
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', onStorage);
+    }
+  };
+
+  const detach = () => {
+    if (listeners.size === 0) {
+      if (channel) {
+        channel.removeEventListener('message', emit);
+        channel.close();
+        channel = null;
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', onStorage);
+      }
+    }
+  };
 
   return {
     mode: 'LOCAL',
     subscribe(cb) {
+      if (listeners.size === 0) attach();
       listeners.add(cb);
       cb(read());
-      return () => listeners.delete(cb);
+      return () => {
+        listeners.delete(cb);
+        detach();
+      };
     },
     async update(updates) {
       const root = read() ?? toDbForm(createSeed());
       applyUpdates(root, updates);
       write(root);
       emit();
-      channel?.postMessage('u');
+      try {
+        const c = channel ?? (typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(CHANNEL) : null);
+        c?.postMessage('u');
+        if (!channel) c?.close();
+      } catch {
+        // ignore
+      }
     },
     async seedIfEmpty(seed) {
       if (!read()) {
         write(seed as Record<string, unknown>);
         emit();
-        channel?.postMessage('u');
+        try {
+          const c = channel ?? (typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(CHANNEL) : null);
+          c?.postMessage('u');
+          if (!channel) c?.close();
+        } catch {
+          // ignore
+        }
       }
     },
     onOffset(cb) {
@@ -175,9 +217,18 @@ export function createFirebaseBackend(): Backend {
   };
 }
 
+let sharedFirebaseBackend: Backend | null = null;
+
+export function getSharedFirebaseBackend(): Backend {
+  if (!sharedFirebaseBackend) {
+    sharedFirebaseBackend = createFirebaseBackend();
+  }
+  return sharedFirebaseBackend;
+}
+
 export async function createBackend(): Promise<{ backend: Backend; fallbackReason?: string }> {
   try {
-    const fbBackend = createFirebaseBackend();
+    const fbBackend = getSharedFirebaseBackend();
     await fbBackend.seedIfEmpty(toDbForm(createSeed()));
     return { backend: fbBackend };
   } catch (err) {

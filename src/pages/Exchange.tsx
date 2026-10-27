@@ -46,12 +46,13 @@ export default function Exchange() {
 
   // Chart data format
   const chartData = useMemo(() => {
-    const hist = activeTicker.history || [activeTicker.currentPrice];
+    const rawHist = activeTicker.history || [activeTicker.currentPrice];
+    const hist = rawHist.slice(-30);
     return hist.map((price, idx) => ({
       step: idx === hist.length - 1 ? 'LIVE' : `T-${hist.length - 1 - idx}`,
       price,
     }));
-  }, [activeTicker]);
+  }, [activeTicker.history, activeTicker.currentPrice]);
 
   // Order Calculations
   const orderPrice = activeTicker.currentPrice;
@@ -277,6 +278,7 @@ export default function Exchange() {
                     strokeWidth={2.5}
                     fillOpacity={1}
                     fill={`url(#grad-${selectedTicker})`}
+                    isAnimationActive={false}
                   />
                 </AreaChart>
               </ResponsiveContainer>

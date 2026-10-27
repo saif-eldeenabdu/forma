@@ -1,10 +1,9 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, memo, type FormEvent, type ReactNode } from 'react';
 import { AlertTriangle, ArrowDown, ArrowUp, Check, DollarSign, Gavel, Landmark, Lock, Megaphone, Pause, Play, Radio, RotateCcw, ShieldCheck, SkipForward, Skull, Sparkles, Trash2, TrendingUp, X } from 'lucide-react';
 import { COUNTRIES, FULL_MEMBERS, PARTNERS, DEFAULT_DELEGATION_PINS } from '../data/countries';
 import { DEFAULT_TICKERS, TICKER_SYMBOLS, calculatePortfolioValue, STARTING_CASH } from '../data/exchange';
-import { BRICS_CLEAR_QUORUM, getReserves, isBankrupt, useNow, useStore } from '../lib/store';
+import { BRICS_CLEAR_QUORUM, getReserves, isBankrupt, useStore } from '../lib/store';
 import { fmtMT, grainType } from '../data/grain';
-import { deriveTimer } from '../lib/timer';
 import { sortMotions } from '../lib/motions';
 import { fmtRate } from '../lib/markets';
 import type { Severity, TickerSymbol, TimerType } from '../lib/types';
@@ -71,12 +70,11 @@ function PinGate({ onSuccess }: { onSuccess?: () => void }) {
 }
 
 /* ------------------------------ Timers & GSL ------------------------------ */
-function TimerTab() {
+const TimerTab = memo(function TimerTab() {
   const { state, actions } = useStore();
   const cs = state.committeeState;
   const t = cs.timer;
-  const tick = useNow(200);
-  const d = deriveTimer(t, tick);
+  const isExpired = t.remainingSeconds <= 0 && !t.isRunning;
   const [speakerSec, setSpeakerSec] = useState(t.totalSeconds);
   const [caucusMin, setCaucusMin] = useState(Math.round(t.modTotalSeconds / 60));
   const [addCountry, setAddCountry] = useState('');
@@ -99,7 +97,7 @@ function TimerTab() {
             ))}
           </div>
           <div className="mt-3 grid grid-cols-4 gap-2">
-            <button className="btn btn-emerald" onClick={actions.startTimer} disabled={d.expired}><Play size={13} /> Start</button>
+            <button className="btn btn-emerald" onClick={actions.startTimer} disabled={isExpired}><Play size={13} /> Start</button>
             <button className="btn" onClick={actions.pauseTimer}><Pause size={13} /> Pause</button>
             <button className="btn" onClick={actions.resetTimer}><RotateCcw size={13} /> Reset</button>
             <button className="btn" onClick={actions.nextSpeaker} title="Remove the head of the GSL and give the floor to the next speaker"><SkipForward size={13} /> Next</button>
@@ -185,10 +183,10 @@ function TimerTab() {
       </div>
     </div>
   );
-}
+});
 
 /* ------------------------------ Motions ------------------------------ */
-function MotionsTab() {
+const MotionsTab = memo(function MotionsTab() {
   const { state, actions } = useStore();
   const open = sortMotions(state.motions.filter((m) => m.status === 'PENDING' || m.status === 'PROJECTED'));
   const done = state.motions.filter((m) => m.status === 'PASSED' || m.status === 'FAILED').slice().reverse();
@@ -230,7 +228,7 @@ function MotionsTab() {
       </Panel>
     </div>
   );
-}
+});
 
 /* ------------------------------ Markets ------------------------------ */
 function MacroSlider({ label, value, min = 0, max = 100, step = 0.1, suffix = '%', onCommit }: { label: string; value: number; min?: number; max?: number; step?: number; suffix?: string; onCommit: (v: number) => void }) {
@@ -272,7 +270,7 @@ function CurrencyRow({ code }: { code: string }) {
   );
 }
 
-function MarketsTab() {
+const MarketsTab = memo(function MarketsTab() {
   const { state, actions } = useStore();
   const cs = state.committeeState;
   return (
@@ -308,10 +306,10 @@ function MarketsTab() {
       </div>
     </div>
   );
-}
+});
 
 /* ------------------------------ News ------------------------------ */
-function NewsTab() {
+const NewsTab = memo(function NewsTab() {
   const { state, actions } = useStore();
   const [text, setText] = useState('');
   const submit = (e: FormEvent) => {
@@ -337,10 +335,10 @@ function NewsTab() {
       </ul>
     </Panel>
   );
-}
+});
 
 /* ------------------------------ Trades & Directives ------------------------------ */
-function TradesTab() {
+const TradesTab = memo(function TradesTab() {
   const { state, actions } = useStore();
   const [showPendingCounterparty, setShowPendingCounterparty] = useState(false);
   const active = state.trades.filter((t) => t.status === 'AWAITING_CHAIR' || t.status === 'PENDING');
@@ -453,10 +451,10 @@ function TradesTab() {
       </Panel>
     </div>
   );
-}
+});
 
 /* ------------------------------ Security & PINs ------------------------------ */
-function SecurityTab() {
+const SecurityTab = memo(function SecurityTab() {
   const { state, actions } = useStore();
   const pins = state.delegationPins || {};
   const [editCountry, setEditCountry] = useState<string | null>(null);
@@ -564,7 +562,7 @@ function SecurityTab() {
       </div>
     </Panel>
   );
-}
+});
 
 /* ------------------------------ Black Swan ------------------------------ */
 function SwanCard({ title, desc, children, tone = 'crimson' }: { title: string; desc: string; children: ReactNode; tone?: 'crimson' | 'gold' }) {
@@ -576,7 +574,7 @@ function SwanCard({ title, desc, children, tone = 'crimson' }: { title: string; 
   );
 }
 
-function SwanTab() {
+const SwanTab = memo(function SwanTab() {
   const { state, actions } = useStore();
   const cs = state.committeeState;
   const [country, setCountry] = useState('Algeria');
@@ -722,10 +720,10 @@ function SwanTab() {
       </Panel>
     </div>
   );
-}
+});
 
 /* ------------------------------ Market Maker ------------------------------ */
-function MarketMakerTab() {
+const MarketMakerTab = memo(function MarketMakerTab() {
   const { state, actions } = useStore();
   const { exchangeState } = state;
   const { marketStatus, tickers, portfolios } = exchangeState;
@@ -1050,10 +1048,10 @@ function MarketMakerTab() {
       </Panel>
     </div>
   );
-}
+});
 
 /* ------------------------------ Wiretap & Cyber Command ------------------------------ */
-function WiretapTab() {
+const WiretapTab = memo(function WiretapTab() {
   const { state, actions } = useStore();
   const cs = state.committeeState;
   const msgs = (state.backchannelMessages || []).slice().reverse();
@@ -1159,10 +1157,10 @@ function WiretapTab() {
       </Panel>
     </div>
   );
-}
+});
 
 /* ------------------------------ Gossip Box (Chair View) ------------------------------ */
-function GossipTab() {
+const GossipTab = memo(function GossipTab() {
   const { state, actions } = useStore();
   const [filter, setFilter] = useState<'ALL' | 'UNREAD'>('ALL');
 
@@ -1278,7 +1276,7 @@ function GossipTab() {
       </Panel>
     </div>
   );
-}
+});
 
 /* ------------------------------ Page ------------------------------ */
 export default function Admin() {
