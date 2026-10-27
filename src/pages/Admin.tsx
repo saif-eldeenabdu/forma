@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, Check, DollarSign, Gavel, Landmark, Lock, Megaphone, Pause, Play, RotateCcw, ShieldCheck, SkipForward, Skull, Trash2, TrendingUp, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Check, DollarSign, Gavel, Landmark, Lock, Megaphone, Pause, Play, Radio, RotateCcw, ShieldCheck, SkipForward, Skull, Trash2, TrendingUp, X } from 'lucide-react';
 import { COUNTRIES, FULL_MEMBERS, PARTNERS, DEFAULT_DELEGATION_PINS } from '../data/countries';
 import { DEFAULT_TICKERS, TICKER_SYMBOLS, calculatePortfolioValue, STARTING_CASH } from '../data/exchange';
-import { BRICS_CLEAR_QUORUM, useNow, useStore } from '../lib/store';
+import { BRICS_CLEAR_QUORUM, getReserves, isBankrupt, useNow, useStore } from '../lib/store';
 import { fmtMT, grainType } from '../data/grain';
 import { deriveTimer } from '../lib/timer';
 import { sortMotions } from '../lib/motions';
@@ -12,7 +12,7 @@ import { Field, PageHeader, Panel, fmtSecondsLabel } from '../components/ui';
 import { TimerPanel } from '../components/Timer';
 import { motionLine } from '../components/Overlays';
 
-type Tab = 'timer' | 'motions' | 'markets' | 'marketMaker' | 'news' | 'trades' | 'crisis' | 'security';
+type Tab = 'timer' | 'motions' | 'markets' | 'marketMaker' | 'news' | 'trades' | 'crisis' | 'security' | 'wiretap';
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'timer', label: 'Timers & GSL', icon: <Play size={13} /> },
   { id: 'motions', label: 'Motions', icon: <Gavel size={13} /> },
@@ -21,6 +21,7 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'news', label: 'News & Intel', icon: <Megaphone size={13} /> },
   { id: 'trades', label: 'Trades & Directives', icon: <Landmark size={13} /> },
   { id: 'crisis', label: 'Big Bullshit Area', icon: <Skull size={13} /> },
+  { id: 'wiretap', label: 'Wiretap / Cyber', icon: <Radio size={13} /> },
   { id: 'security', label: 'Security / PINs', icon: <ShieldCheck size={13} /> },
 ];
 
@@ -147,17 +148,24 @@ function TimerTab() {
         </Panel>
         <Panel title="GSL Queue" bodyClass="p-0">
           <ol className="divide-y divide-hairline">
-            {cs.gslQueue.map((c, i) => (
-              <li key={`${c}-${i}`} className={`flex items-center gap-2 px-3 py-1.5 ${i === 0 ? 'bg-gold/10' : ''}`}>
-                <span className="tabular w-6 text-[11px] text-sage">{String(i + 1).padStart(2, '0')}</span>
-                <span className="font-serif text-lg">{c}</span>
-                <span className="ml-auto flex gap-1">
-                  <button className="btn !p-1.5" onClick={() => actions.moveInQueue(i, -1)} disabled={i === 0} aria-label="Move up"><ArrowUp size={12} /></button>
-                  <button className="btn !p-1.5" onClick={() => actions.moveInQueue(i, 1)} disabled={i === cs.gslQueue.length - 1} aria-label="Move down"><ArrowDown size={12} /></button>
-                  <button className="btn btn-crimson !p-1.5" onClick={() => actions.removeFromQueue(i)} aria-label="Remove"><Trash2 size={12} /></button>
-                </span>
-              </li>
-            ))}
+            {cs.gslQueue.map((item, i) => {
+              const countryName = typeof item === 'string' ? item : item.country;
+              const bid = typeof item === 'string' ? 0 : item.bid;
+              return (
+                <li key={`${countryName}-${i}`} className={`flex items-center gap-2 px-3 py-1.5 ${i === 0 ? 'bg-gold/10' : ''}`}>
+                  <span className="tabular w-6 text-[11px] text-sage">{String(i + 1).padStart(2, '0')}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-serif text-lg">{countryName}</span>
+                    <span className="font-mono text-xs text-gold">(${bid.toLocaleString()} bid)</span>
+                  </div>
+                  <span className="ml-auto flex gap-1">
+                    <button className="btn !p-1.5" onClick={() => actions.moveInQueue(i, -1)} disabled={i === 0} aria-label="Move up"><ArrowUp size={12} /></button>
+                    <button className="btn !p-1.5" onClick={() => actions.moveInQueue(i, 1)} disabled={i === cs.gslQueue.length - 1} aria-label="Move down"><ArrowDown size={12} /></button>
+                    <button className="btn btn-crimson !p-1.5" onClick={() => actions.removeFromQueue(i)} aria-label="Remove"><Trash2 size={12} /></button>
+                  </span>
+                </li>
+              );
+            })}
             {cs.gslQueue.length === 0 && <li className="px-3 py-4 text-sm text-sage">Queue is empty.</li>}
           </ol>
           <div className="flex gap-2 border-t border-hairline p-3">
@@ -655,6 +663,28 @@ function SwanTab() {
             )}
           </div>
         </SwanCard>
+
+        <SwanCard
+          title="Mode 5 // NSA & BRICS Cyber Breach (Wiretap Leak)"
+          desc="Hijacks the entire Main Terminal with a flashing Cyber Attack overlay displaying private diplomatic cables in real-time."
+        >
+          <button
+            className={`btn w-full !py-3 font-bold uppercase tracking-wider ${
+              cs.cyberAttackActive ? 'btn-emerald' : 'btn-crimson'
+            }`}
+            onClick={() => actions.setCyberAttack(!cs.cyberAttackActive)}
+          >
+            {cs.cyberAttackActive ? (
+              <>
+                <RotateCcw size={14} /> DEACTIVATE CYBER ATTACK
+              </>
+            ) : (
+              <>
+                <Skull size={14} /> TRIGGER CYBER ATTACK (EXPOSE CHATS)
+              </>
+            )}
+          </button>
+        </SwanCard>
       </div>
 
       <SwanCard title="Custom Breaking Crisis Injection" desc="Type any crisis, pick a severity, and blast it as a modal with a sonar chime to every connected screen." tone="gold">
@@ -956,6 +986,176 @@ function MarketMakerTab() {
           </table>
         </div>
       </Panel>
+
+      {/* Sovereign Solvency & Emergency Bailout Desk */}
+      <Panel title="Sovereign Solvency & Bailout Desk // Monopoly Bankruptcy Engine">
+        <p className="text-xs text-sage mb-3">
+          Manage liquid sovereign reserves for all 22 delegations. Inject central-bank liquidity ($2,000,000) to stabilize an economy, or force a Sovereign Default (GGs) wiping their cash reserves to $0.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {COUNTRIES.map((c) => {
+            const res = getReserves(state, c.name);
+            const bankrupt = isBankrupt(state, c.name);
+            return (
+              <div
+                key={c.name}
+                className={`rounded border p-3 font-mono text-xs space-y-2 ${
+                  bankrupt
+                    ? 'border-crimson bg-crimson/15'
+                    : 'border-hairline bg-charcoal'
+                }`}
+              >
+                <div className="flex items-center justify-between border-b border-hairline pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gold font-bold">{c.name}</span>
+                    <span className="text-sage text-[10px]">[{c.code}]</span>
+                  </div>
+                  <span
+                    className={`text-[9px] uppercase font-bold px-1 py-0.2 border ${
+                      bankrupt
+                        ? 'border-crimson bg-crimson/30 text-crimson'
+                        : 'border-emerald/40 text-emerald'
+                    }`}
+                  >
+                    {bankrupt ? '💀 DEFAULT (GGs)' : 'SOLVENT'}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-sage">LIQUID RESERVES:</span>
+                  <span className={`tabular font-bold ${bankrupt ? 'text-crimson' : 'text-gold'}`}>
+                    ${Math.round(res).toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5 pt-1">
+                  <button
+                    onClick={() => actions.injectBailout(c.name, 2000000)}
+                    className="btn btn-emerald !py-1 !px-1 text-[10px] uppercase font-bold"
+                  >
+                    +$2M Bailout
+                  </button>
+                  <button
+                    onClick={() => actions.forceBankrupt(c.name)}
+                    className="btn btn-crimson !py-1 !px-1 text-[10px] uppercase font-bold"
+                  >
+                    Force $0 (GGs)
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+/* ------------------------------ Wiretap & Cyber Command ------------------------------ */
+function WiretapTab() {
+  const { state, actions } = useStore();
+  const cs = state.committeeState;
+  const msgs = (state.backchannelMessages || []).slice().reverse();
+  const [filterCountry, setFilterCountry] = useState('ALL');
+
+  const filtered = filterCountry === 'ALL'
+    ? msgs
+    : msgs.filter((m) => m.from === filterCountry || m.to === filterCountry);
+
+  return (
+    <div className="space-y-4 font-mono">
+      {/* Cyber Attack Control Panel */}
+      <Panel
+        title="NSA / Cyber Command // Master Wiretap & Breach Console"
+        tone={cs.cyberAttackActive ? 'crimson' : 'gold'}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="label !text-gold">CYBER BREACH STATUS:</span>
+              <span
+                className={`text-sm font-bold uppercase tracking-wider ${
+                  cs.cyberAttackActive ? 'text-crimson animate-pulse' : 'text-emerald'
+                }`}
+              >
+                ● {cs.cyberAttackActive ? 'ACTIVE // EXPOSING CABLES ON MAIN TERMINAL' : 'SECURE // PASSIVE SURVEILLANCE ONLY'}
+              </span>
+            </div>
+            <p className="text-xs text-sage">
+              Activating the Cyber Attack forces a fullscreen breach overlay onto the Main Terminal, live-streaming the latest 10 diplomatic back-channel dispatches to all connected delegates.
+            </p>
+          </div>
+          <button
+            onClick={() => actions.setCyberAttack(!cs.cyberAttackActive)}
+            className={`btn font-mono text-xs font-bold uppercase tracking-[0.14em] px-6 py-2.5 ${
+              cs.cyberAttackActive ? 'btn-emerald' : 'btn-crimson'
+            }`}
+          >
+            {cs.cyberAttackActive ? 'Deactivate Cyber Breach' : 'Trigger Cyber Attack (Expose Back-Channels)'}
+          </button>
+        </div>
+      </Panel>
+
+      {/* Wiretapped Cables Feed */}
+      <Panel
+        title={`Intercepted Diplomatic Cables // ${filtered.length} Dispatches Recorded`}
+        right={
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-sage">Filter Country:</span>
+            <select
+              value={filterCountry}
+              onChange={(e) => setFilterCountry(e.target.value)}
+              className="field !py-0.5 !px-2 text-xs"
+            >
+              <option value="ALL">All Delegations (22)</option>
+              <optgroup label="FULL MEMBERS (11)">
+                {FULL_MEMBERS.map((c) => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </optgroup>
+              <optgroup label="PARTNERS (11)">
+                {PARTNERS.map((c) => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
+        }
+        bodyClass="p-0"
+      >
+        <div className="divide-y divide-hairline max-h-[500px] overflow-y-auto">
+          {filtered.length === 0 ? (
+            <p className="p-6 text-center text-xs text-sage">No cables recorded for this filter.</p>
+          ) : (
+            filtered.map((m) => (
+              <div key={m.id} className="p-3 flex items-start justify-between gap-3 hover:bg-charcoal/50">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-gold font-bold">[{m.from}]</span>
+                    <span className="text-sage">→</span>
+                    <span className="text-emerald font-bold">[{m.to}]</span>
+                    <span className="text-sage text-[10px]">· {new Date(m.createdAt).toLocaleTimeString()}</span>
+                    {m.leaked && (
+                      <span className="border border-crimson bg-crimson/20 px-1.5 py-0.2 text-[9px] text-crimson font-bold uppercase">
+                        Leaked to Press
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-ivory font-sans">{m.text}</p>
+                </div>
+                {!m.leaked && (
+                  <button
+                    onClick={() => actions.leakBackchannelMessage(m.id)}
+                    className="btn btn-crimson !py-1 !px-2 text-[10px] uppercase shrink-0"
+                  >
+                    Force Leak to Wire
+                  </button>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </Panel>
     </div>
   );
 }
@@ -1004,6 +1204,7 @@ export default function Admin() {
       {tab === 'news' && <NewsTab />}
       {tab === 'trades' && <TradesTab />}
       {tab === 'crisis' && <SwanTab />}
+      {tab === 'wiretap' && <WiretapTab />}
       {tab === 'security' && <SecurityTab />}
     </div>
   );
@@ -1018,5 +1219,6 @@ export {
   TradesTab as TradesDirectives,
   SwanTab as BigBullshitArea,
   SwanTab as BlackSwan,
+  WiretapTab as Wiretap,
   SecurityTab as SecurityPins,
 };

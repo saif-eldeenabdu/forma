@@ -47,6 +47,12 @@ export interface AssetFreeze {
   signers: string[];
 }
 
+export interface GslItem {
+  country: string;
+  bid: number;
+  timestamp: number;
+}
+
 export interface CommitteeState {
   currentMode: Mode;
   activeCrisisBanner: string;
@@ -55,7 +61,7 @@ export interface CommitteeState {
   goldBackingRatio: number;
   bricsPayAdoption: number;
   timer: TimerState;
-  gslQueue: string[];
+  gslQueue: GslItem[];
   gslRequests: GslRequest[];
   projectedMotionId: string;
   crisisAlert: CrisisAlert | null;
@@ -64,6 +70,7 @@ export interface CommitteeState {
   pressure: Record<string, string>;
   suezTollCurrency: SuezCurrency;
   assetFreeze: AssetFreeze | null;
+  cyberAttackActive?: boolean;
 }
 
 export interface Currency {
@@ -169,6 +176,15 @@ export interface ExchangeState {
   portfolios: Record<string, DelegationPortfolio>;
 }
 
+export interface BackchannelMessage {
+  id: string;
+  from: string;
+  to: string; // 'GLOBAL' or country name
+  text: string;
+  createdAt: number;
+  leaked?: boolean;
+}
+
 export interface RootState {
   committeeState: CommitteeState;
   currencies: Record<string, Currency>;
@@ -180,6 +196,7 @@ export interface RootState {
   grainContracts: GrainContract[];
   delegationPins: Record<string, string>;
   exchangeState: ExchangeState;
+  backchannelMessages: BackchannelMessage[];
 }
 
 /** Multi-path update map: `a/b/c` -> value (null deletes). Mirrors Firebase `update()`. */

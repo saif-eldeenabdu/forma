@@ -275,5 +275,78 @@ describe('NDB Sovereign Exchange', () => {
   });
 });
 
+describe('GSL Speaking Time Auction Desk', () => {
+  it('normalizes legacy string queue items and sorts descending by bid amount', () => {
+    const raw = toDbForm(createSeed()) as any;
+    raw.committeeState.gslQueue = [
+      { country: 'India', bid: 150_000, timestamp: 100 },
+      { country: 'China', bid: 500_000, timestamp: 200 },
+      'Brazil',
+      { country: 'Algeria', bid: 300_000, timestamp: 300 },
+    ];
+    const s = normalize(raw);
+    expect(s.committeeState.gslQueue[0].country).toBe('China');
+    expect(s.committeeState.gslQueue[0].bid).toBe(500_000);
+    expect(s.committeeState.gslQueue[1].country).toBe('Algeria');
+    expect(s.committeeState.gslQueue[1].bid).toBe(300_000);
+    expect(s.committeeState.gslQueue[2].country).toBe('India');
+    expect(s.committeeState.gslQueue[2].bid).toBe(150_000);
+    expect(s.committeeState.gslQueue[3].country).toBe('Brazil');
+    expect(s.committeeState.gslQueue[3].bid).toBe(0);
+  });
 
+  it('preserves tie-break sorting by earliest timestamp', () => {
+    const raw = toDbForm(createSeed()) as any;
+    raw.committeeState.gslQueue = [
+      { country: 'South Africa', bid: 250_000, timestamp: 200 },
+      { country: 'Egypt', bid: 250_000, timestamp: 100 },
+    ];
+    const s = normalize(raw);
+    expect(s.committeeState.gslQueue[0].country).toBe('Egypt');
+    expect(s.committeeState.gslQueue[1].country).toBe('South Africa');
+  });
+});
 
+describe('Sovereign Reserves & Monopoly Bankruptcy (GGs)', () => {
+  it('initializes and reads sovereign cash balances accurately', () => {
+    const s = normalize(null);
+    expect(s.exchangeState.portfolios['China'].cash).toBe(10_000_000);
+    expect(s.exchangeState.portfolios['Algeria'].cash).toBe(10_000_000);
+  });
+
+  it('detects default/bankruptcy when cash is zero or negative', () => {
+    const raw = toDbForm(createSeed()) as any;
+    raw.exchangeState = {
+      portfolios: {
+        Brazil: { cash: 0, holdings: { GOLD: 0, UST: 0, URALS: 0, AGRI: 0, TECH: 0 } },
+        India: { cash: -500, holdings: { GOLD: 0, UST: 0, URALS: 0, AGRI: 0, TECH: 0 } },
+        China: { cash: 5_000_000, holdings: { GOLD: 0, UST: 0, URALS: 0, AGRI: 0, TECH: 0 } },
+      },
+    };
+    const s = normalize(raw);
+    expect(s.exchangeState.portfolios['Brazil'].cash <= 0).toBe(true);
+    expect(s.exchangeState.portfolios['India'].cash <= 0).toBe(true);
+    expect(s.exchangeState.portfolios['China'].cash <= 0).toBe(false);
+  });
+});
+
+describe('Encrypted Back-Channels & Cyber Attacks', () => {
+  it('normalizes backchannel messages and sorts chronologically', () => {
+    const raw = toDbForm(createSeed()) as any;
+    raw.backchannelMessages = {
+      m2: { id: 'm2', from: 'China', to: 'Russia', text: 'Second cable', createdAt: 2000 },
+      m1: { id: 'm1', from: 'India', to: 'GLOBAL', text: 'First broadcast', createdAt: 1000 },
+    };
+    const s = normalize(raw);
+    expect(s.backchannelMessages).toHaveLength(2);
+    expect(s.backchannelMessages[0].id).toBe('m1');
+    expect(s.backchannelMessages[1].id).toBe('m2');
+  });
+
+  it('normalizes cyberAttackActive flag', () => {
+    const raw = toDbForm(createSeed()) as any;
+    raw.committeeState.cyberAttackActive = true;
+    const s = normalize(raw);
+    expect(s.committeeState.cyberAttackActive).toBe(true);
+  });
+});

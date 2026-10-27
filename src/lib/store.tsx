@@ -16,8 +16,9 @@ import { applyValueChange, clamp, PEGGED } from './markets';
 import { uid } from './motions';
 import { byName, COUNTRY_NAMES, DEFAULT_DELEGATION_PINS } from '../data/countries';
 import { BRICS_PAY_ADOPTION_BOOST, USD_SURCHARGE_PCT, defaultStock, fmtMT, grainType } from '../data/grain';
-import { DEFAULT_TICKERS, defaultPortfolio } from '../data/exchange';
+import { DEFAULT_TICKERS, defaultPortfolio, STARTING_CASH } from '../data/exchange';
 import type {
+  BackchannelMessage,
   CrisisAlert,
   DelegationPortfolio,
   GrainCommodity,
@@ -102,6 +103,16 @@ export interface Actions {
   executeExchangeOrder(order: { ticker: TickerSymbol; action: 'BUY' | 'SELL' | 'SHORT'; quantity: number; country: string }): void;
   setMarketStatus(status: MarketStatus): void;
   shiftTickerPrice(symbol: TickerSymbol, pctChange: number): void;
+  // GSL auction
+  placeGslBid(bid: number, country: string): void;
+  // bailouts & reserves
+  wireBailout(from: string, to: string, amount: number): void;
+  injectBailout(country: string, amount: number): void;
+  forceBankrupt(country: string): void;
+  // backchannel & cyber attack
+  sendBackchannelMessage(msg: { from: string; to: string; text: string }): void;
+  leakBackchannelMessage(id: string): void;
+  setCyberAttack(active: boolean): void;
   // toast
   showToast(msg: string): void;
 }
@@ -113,6 +124,8 @@ interface Ctx {
   syncNote: string;
   now: () => number;
   me: string;
+  reserves: number;
+  bankrupt: boolean;
   setMe: (name: string) => void;
   claimDelegation: (country: string, pin: string) => boolean;
   releaseDelegation: () => void;
@@ -295,19 +308,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       nextSpeaker() {
         const cs = S().committeeState;
+        if (!cs.gslQueue || cs.gslQueue.length === 0) {
+          showToast('GSL QUEUE EMPTY');
+          return;
+        }
+        const speakerItem = cs.gslQueue[0];
+        const nextCountry = speakerItem.country;
+        const bidAmount = speakerItem.bid || 0;
         const queue = cs.gslQueue.slice(1);
-        const next = queue[0] ?? 'None';
-        write({
+
+        const curPf = S().exchangeState?.portfolios?.[nextCountry];
+        const currentCash = curPf?.cash ?? STARTING_CASH;
+        const newCash = Math.max(0, Math.round(currentCash - bidAmount));
+
+        const u: Updates = {
           ...timerPatch({
-            currentSpeaker: next,
+            currentSpeaker: nextCountry,
             remainingSeconds: cs.timer.totalSeconds,
             isRunning: false,
             yieldTo: 'None',
             yieldedFrom: null,
           }),
           'committeeState/gslQueue': queue,
-        });
-        showToast(`SPEAKER ADVANCED: ${next}`);
+          [`exchangeState/portfolios/${nextCountry}/cash`]: newCash,
+        };
+        write(u);
+        showToast(`SPEAKER ADVANCED: ${nextCountry} (Deducted $${bidAmount.toLocaleString()} bid)`);
       },
       setSpeaker(name) {
         write(timerPatch({ currentSpeaker: name, yieldTo: 'None', yieldedFrom: null }));
@@ -332,10 +358,63 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       },
 
+      placeGslBid(bid, country) {
+        if (!country) {
+          showToast('AUTHENTICATION REQUIRED: Claim country before bidding');
+          return;
+        }
+        const b = Math.floor(bid);
+        if (b < 100_000) {
+          showToast('MINIMUM BID: $100,000 required for GSL auction');
+          return;
+        }
+        const S_state = S();
+        const currentReserves = S_state.exchangeState?.portfolios?.[country]?.cash ?? STARTING_CASH;
+        if (currentReserves <= 0) {
+          showToast('SOVEREIGN DEFAULT (GGs): Treasury empty. Bidding locked.');
+          return;
+        }
+
+        const q = [...(S_state.committeeState.gslQueue || [])];
+        const existingIndex = q.findIndex((x) => x.country === country);
+
+        let finalBid = b;
+        if (existingIndex >= 0) {
+          finalBid = q[existingIndex].bid + b;
+          if (finalBid > currentReserves) {
+            showToast(`EXCEEDS RESERVES: Total bid ($${finalBid.toLocaleString()}) exceeds liquid reserves ($${Math.round(currentReserves).toLocaleString()})`);
+            return;
+          }
+          q[existingIndex] = {
+            country,
+            bid: finalBid,
+            timestamp: now(),
+          };
+        } else {
+          if (b > currentReserves) {
+            showToast(`EXCEEDS RESERVES: Bid ($${b.toLocaleString()}) exceeds liquid reserves ($${Math.round(currentReserves).toLocaleString()})`);
+            return;
+          }
+          q.push({
+            country,
+            bid: b,
+            timestamp: now(),
+          });
+        }
+
+        q.sort((a, bItem) => bItem.bid - a.bid || a.timestamp - bItem.timestamp);
+
+        write({ 'committeeState/gslQueue': q });
+        showToast(`GSL BID PLACED: ${country} — $${finalBid.toLocaleString()}`);
+      },
       addToQueue(name) {
-        const q = S().committeeState.gslQueue;
-        write({ 'committeeState/gslQueue': [...q, name] });
-        showToast(`GSL: Added ${name}`);
+        const q = [...(S().committeeState.gslQueue || [])];
+        if (!q.some((x) => x.country === name)) {
+          q.push({ country: name, bid: 0, timestamp: now() });
+          q.sort((a, b) => b.bid - a.bid || a.timestamp - b.timestamp);
+          write({ 'committeeState/gslQueue': q });
+          showToast(`GSL: Added ${name}`);
+        }
       },
       removeFromQueue(index) {
         const q = S().committeeState.gslQueue.filter((_, i) => i !== index);
@@ -351,7 +430,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       requestGsl(country) {
         const cs = S().committeeState;
-        if (cs.gslQueue.includes(country) || cs.gslRequests.some((r) => r.country === country)) return;
+        if (cs.gslQueue.some((x) => x.country === country) || cs.gslRequests.some((r) => r.country === country)) return;
         const id = uid();
         write({ [`committeeState/gslRequests/${id}`]: { id, country, at: now() } });
       },
@@ -359,9 +438,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const cs = S().committeeState;
         const r = cs.gslRequests.find((x) => x.id === id);
         if (!r) return;
+        const q = [...cs.gslQueue];
+        if (!q.some((x) => x.country === r.country)) {
+          q.push({ country: r.country, bid: 0, timestamp: now() });
+          q.sort((a, b) => b.bid - a.bid || a.timestamp - b.timestamp);
+        }
         write({
           [`committeeState/gslRequests/${id}`]: null,
-          'committeeState/gslQueue': cs.gslQueue.includes(r.country) ? cs.gslQueue : [...cs.gslQueue, r.country],
+          'committeeState/gslQueue': q,
         });
         showToast(`GSL REQUEST APPROVED: ${r.country}`);
       },
@@ -562,20 +646,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const t = now();
         const currentSanctioned = S().committeeState.sanctionedCountries ?? [];
         const nextSanctioned = Array.from(new Set([...currentSanctioned, country]));
+        const curCash = S().exchangeState?.portfolios?.[country]?.cash ?? STARTING_CASH;
+        const slashedCash = Math.max(0, Math.round(curCash * 0.7));
         const u: Updates = {
           [`committeeState/sanctions/${country}`]: { at: t, until: t + 10 * 60 * 1000 },
           'committeeState/sanctionedCountries': nextSanctioned,
+          [`exchangeState/portfolios/${country}/cash`]: slashedCash,
           'committeeState/crisisAlert': alertOf({
             kind: 'SANCTION',
             severity: 'CRITICAL',
             title: `SECONDARY SANCTIONS IMPOSED ON ${country.toUpperCase()}`,
-            body: `SWIFT CUTOFF in effect. ${c.currencyCode} falls 12%. The committee has 10 minutes to arrange a bail-out via BRICS Pay.`,
+            body: `SWIFT CUTOFF in effect. ${c.currencyCode} falls 12%. Liquid reserves slashed by 30% ($${slashedCash.toLocaleString()} remaining).`,
           }),
-          ...news(`SANCTIONS: Secondary sanctions imposed on ${country}. SWIFT cutoff. ${c.currencyCode} -12%.`),
+          ...news(`SANCTIONS: Secondary sanctions on ${country}. SWIFT cutoff. ${c.currencyCode} -12%. Reserves slashed by 30%.`),
         };
         if (cur) u[`currencies/${c.currencyCode}`] = applyValueChange(cur, -12);
         write(u);
-        showToast(`SANCTIONS IMPOSED: Secondary sanctions on ${country}`);
+        showToast(`SANCTIONS IMPOSED: 30% reserves slashed for ${country}`);
       },
       liftSanctions(country) {
         if (country) {
@@ -611,21 +698,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const c = byName(country);
         if (!c) return;
         const cur = S().currencies[c.currencyCode];
+        const curCash = S().exchangeState?.portfolios?.[country]?.cash ?? STARTING_CASH;
+        const slashedCash = Math.max(0, Math.round(curCash * 0.5));
         const u: Updates = {
           'committeeState/currentMode': 'ASSET_FREEZE' as Mode,
           'committeeState/activeCrisisBanner': `ASSETS FROZEN // ${country.toUpperCase()} // BRICS CLEAR RATIFICATION REQUIRED`,
           'committeeState/assetFreeze': { country, amountB, at: now(), signers: [] },
+          [`exchangeState/portfolios/${country}/cash`]: slashedCash,
           'committeeState/crisisAlert': alertOf({
             kind: 'FREEZE',
             severity: 'CRITICAL',
             title: `ALERT: WESTERN DEPOSITORIES (EUROCLEAR/DTCC) HAVE FROZEN SOVEREIGN ASSETS OF ${country.toUpperCase()}.`,
-            body: `$${amountB} BILLION IN FOREIGN RESERVES UNILATERALLY BLOCKED.`,
+            body: `$${amountB} BILLION IN FOREIGN RESERVES UNILATERALLY BLOCKED. Liquid reserves slashed 50% ($${slashedCash.toLocaleString()} remaining).`,
           }),
-          ...news(`ALERT: Euroclear/DTCC freeze sovereign assets of ${country}. $${amountB}B in reserves blocked. ${c.currencyCode} -8.5%.`),
+          ...news(`ALERT: Euroclear/DTCC freeze sovereign assets of ${country}. $${amountB}B blocked. Reserves slashed 50%.`),
         };
         if (cur) u[`currencies/${c.currencyCode}`] = applyValueChange(cur, -8.5);
         write(u);
-        showToast(`ASSET FREEZE: Western depositories frozen for ${country} ($${amountB}B)`);
+        showToast(`ASSET FREEZE: 50% liquid reserves slashed for ${country}`);
       },
       cosignBricsClear(country) {
         const cs = S().committeeState;
@@ -757,6 +847,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           grainContracts: null,
           delegationPins: seed.delegationPins,
           exchangeState: seed.exchangeState,
+          backchannelMessages: null,
         });
         showToast('DATA RESET: All state restored to initial seed');
       },
@@ -900,6 +991,87 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         write(u);
         showToast(`MARKET SHIFT: ${symbol} ${pctChange >= 0 ? '+' : ''}${pctChange}% ($${newPrice})`);
       },
+      wireBailout(from, to, amount) {
+        if (!from || !to || from === to) return;
+        const amt = Math.floor(amount);
+        if (amt <= 0) return;
+        const S_state = S();
+        const fromPf = S_state.exchangeState?.portfolios?.[from] ?? defaultPortfolio();
+        const toPf = S_state.exchangeState?.portfolios?.[to] ?? defaultPortfolio();
+
+        if (fromPf.cash <= 0) {
+          showToast('SOVEREIGN DEFAULT (GGs): Treasury empty. Cannot wire bailout.');
+          return;
+        }
+        if (fromPf.cash < amt) {
+          showToast(`INSUFFICIENT RESERVES: Only $${Math.round(fromPf.cash).toLocaleString()} available`);
+          return;
+        }
+
+        const newFromCash = Math.round(fromPf.cash - amt);
+        const newToCash = Math.round(toPf.cash + amt);
+
+        write({
+          [`exchangeState/portfolios/${from}/cash`]: newFromCash,
+          [`exchangeState/portfolios/${to}/cash`]: newToCash,
+          ...news(`EMERGENCY BAILOUT: ${from} wired $${amt.toLocaleString()} to ${to} to stabilize sovereign reserves.`),
+        });
+        showToast(`BAILOUT WIRED: Transferred $${amt.toLocaleString()} to ${to}`);
+      },
+      injectBailout(country, amount) {
+        const amt = Math.floor(amount);
+        if (!country || amt <= 0) return;
+        const pf = S().exchangeState?.portfolios?.[country] ?? defaultPortfolio();
+        const newCash = Math.round(pf.cash + amt);
+        write({
+          [`exchangeState/portfolios/${country}/cash`]: newCash,
+          ...news(`CENTRAL BANK INJECTION: Chair injected $${amt.toLocaleString()} emergency bailout into ${country}.`),
+        });
+        showToast(`BAILOUT INJECTED: +$${amt.toLocaleString()} to ${country}`);
+      },
+      forceBankrupt(country) {
+        if (!country) return;
+        write({
+          [`exchangeState/portfolios/${country}/cash`]: 0,
+          ...news(`CRITICAL: Chair declared Sovereign Default on ${country}. Liquid reserves wiped to $0 (GGs).`),
+        });
+        showToast(`SOVEREIGN DEFAULT FORCED: ${country} reserves set to $0`);
+      },
+      sendBackchannelMessage(msg) {
+        const { from, to, text } = msg;
+        const t = text.trim();
+        if (!from || !to || !t) return;
+        const id = uid();
+        const newMsg: BackchannelMessage = {
+          id,
+          from,
+          to,
+          text: t,
+          createdAt: now(),
+        };
+        write({
+          [`backchannelMessages/${id}`]: newMsg,
+        });
+      },
+      leakBackchannelMessage(id) {
+        const m = S().backchannelMessages.find((x) => x.id === id);
+        if (!m) return;
+        write({
+          [`backchannelMessages/${id}/leaked`]: true,
+          ...news(`🕵️ LEAKED DIPLOMATIC CABLE [${m.from} → ${m.to}]: '${m.text}'`),
+        });
+        showToast(`MESSAGE LEAKED TO PRESS WIRE // [${m.from} → ${m.to}]`);
+      },
+      setCyberAttack(active) {
+        const u: Updates = {
+          'committeeState/cyberAttackActive': active,
+        };
+        if (active) {
+          Object.assign(u, news('🚨 CRITICAL CYBER BREACH: ALL SOVEREIGN BACK-CHANNELS EXPOSED TO PUBLIC WIRE.'));
+        }
+        write(u);
+        showToast(active ? 'CYBER ATTACK ACTIVATED: Back-channels exposed!' : 'CYBER ATTACK CLEARED: Channels secured');
+      },
       showToast(msg) {
         showToast(msg);
       },
@@ -956,6 +1128,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setIsChair(false);
   }, []);
 
+  const reserves = useMemo(() => getReserves(state, me), [state, me]);
+  const bankrupt = useMemo(() => isBankrupt(state, me), [state, me]);
+
   const value: Ctx = {
     state,
     ready,
@@ -963,6 +1138,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     syncNote,
     now,
     me,
+    reserves,
+    bankrupt,
     setMe,
     claimDelegation,
     releaseDelegation,
@@ -991,6 +1168,17 @@ export function useNow(intervalMs = 100): number {
     return () => clearInterval(id);
   }, [now, intervalMs]);
   return t;
+}
+
+export function getReserves(state: RootState, country: string): number {
+  if (!country) return STARTING_CASH;
+  const pf = state.exchangeState?.portfolios?.[country];
+  return typeof pf?.cash === 'number' ? pf.cash : STARTING_CASH;
+}
+
+export function isBankrupt(state: RootState, country: string): boolean {
+  if (!country) return false;
+  return getReserves(state, country) <= 0;
 }
 
 export function useFiatFrozen(): boolean {

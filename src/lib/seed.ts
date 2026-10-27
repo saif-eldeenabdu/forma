@@ -24,7 +24,13 @@ export function createSeed(now = Date.now()): RootState {
         yieldTo: 'None',
         lastUpdated: now,
       },
-      gslQueue: ['Brazil', 'Russian Federation', 'India', 'China', 'South Africa'],
+      gslQueue: [
+        { country: 'China', bid: 1_500_000, timestamp: now - 50_000 },
+        { country: 'Russian Federation', bid: 1_200_000, timestamp: now - 40_000 },
+        { country: 'India', bid: 800_000, timestamp: now - 30_000 },
+        { country: 'Brazil', bid: 500_000, timestamp: now - 20_000 },
+        { country: 'South Africa', bid: 250_000, timestamp: now - 10_000 },
+      ],
       gslRequests: [],
       projectedMotionId: '',
       crisisAlert: null,
@@ -33,6 +39,7 @@ export function createSeed(now = Date.now()): RootState {
       pressure: {},
       suezTollCurrency: 'USD',
       assetFreeze: null,
+      cyberAttackActive: false,
     },
     currencies: {
       BRL: { name: 'Brazilian Real', rateToUSD: 5.15, change24h: 0.4, history: [5.25, 5.22, 5.19, 5.15] },
@@ -74,5 +81,6 @@ export function createSeed(now = Date.now()): RootState {
       tickers: { ...DEFAULT_TICKERS },
       portfolios: Object.fromEntries(COUNTRY_NAMES.map((c) => [c, defaultPortfolio()])),
     },
+    backchannelMessages: [],
   };
 }

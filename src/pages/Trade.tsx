@@ -77,7 +77,7 @@ function Side({
 }
 
 function TradeForm({ kind }: { kind: TradeKind }) {
-  const { me, actions } = useStore();
+  const { me, actions, bankrupt } = useStore();
   const units = kind === 'BARTER' ? BARTER_PRESETS : SWAP_UNITS;
   const [to, setTo] = useState('');
   const [offerUnit, setOfferUnit] = useState(units[0].unit);
@@ -92,11 +92,11 @@ function TradeForm({ kind }: { kind: TradeKind }) {
   const fmt = (unit: string, qty: number, custom: string) => (unit === CUSTOM ? custom.trim() : `${qty.toLocaleString('en-US')} ${unit}`);
   const offer = fmt(offerUnit, offerQty, offerCustom);
   const request = fmt(reqUnit, reqQty, reqCustom);
-  const valid = !!me && !!to && me !== to && offer.length > 0 && request.length > 0 && (offerUnit === CUSTOM || offerQty > 0) && (reqUnit === CUSTOM || reqQty > 0);
+  const valid = !bankrupt && !!me && !!to && me !== to && offer.length > 0 && request.length > 0 && (offerUnit === CUSTOM || offerQty > 0) && (reqUnit === CUSTOM || reqQty > 0);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!valid || !me) return;
+    if (!valid || !me || bankrupt) return;
     actions.submitTrade({ kind, from: me, to, offer, request, note: note.trim() });
     setNote('');
     setSent(true);
@@ -122,7 +122,7 @@ function TradeForm({ kind }: { kind: TradeKind }) {
           </div>
         )}
         <Field label="Counterparty">
-          <select className="field" value={to} onChange={(e) => setTo(e.target.value)} required disabled={!me}>
+          <select className="field" value={to} onChange={(e) => setTo(e.target.value)} required disabled={!me || bankrupt}>
             <option value="">— select —</option>
             <optgroup label="FULL BRICS MEMBERS (11)">
               {FULL_MEMBERS.filter((c) => c.name !== me).map((c) => (
@@ -143,10 +143,10 @@ function TradeForm({ kind }: { kind: TradeKind }) {
       </div>
       <Side label="You request" units={units} unit={reqUnit} setUnit={setReqUnit} qty={reqQty} setQty={setReqQty} custom={reqCustom} setCustom={setReqCustom} allowCustom={kind === 'BARTER'} />
       <Field label="Terms / note (optional)">
-        <input className="field" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Delivery terms, port of exchange, etc." />
+        <input className="field" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Delivery terms, port of exchange, etc." disabled={bankrupt} />
       </Field>
-      <button className="btn btn-gold w-full" disabled={!valid} type="submit">
-        <Send size={13} /> Submit {kind === 'BARTER' ? 'Barter' : 'Swap'} Proposal
+      <button className="btn btn-gold w-full" disabled={!valid || bankrupt} type="submit">
+        <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (GGs) // Proposals locked' : `Submit ${kind === 'BARTER' ? 'Barter' : 'Swap'} Proposal`}
       </button>
       {sent && (
         <p role="status" className="flex items-center gap-2 border border-emerald/50 bg-emerald/10 px-3 py-2 font-mono text-[11px] uppercase text-emerald">
@@ -189,7 +189,7 @@ function TradeRow({ t }: { t: Trade }) {
 }
 
 function GrainExchange({ locked }: { locked: boolean }) {
-  const { state, me, actions } = useStore();
+  const { state, me, actions, bankrupt } = useStore();
   const [commodity, setCommodity] = useState<GrainCommodity>('WHEAT');
   const [exporterSel, setExporterSel] = useState('');
   const [qty, setQty] = useState(250000);
@@ -201,11 +201,11 @@ function GrainExchange({ locked }: { locked: boolean }) {
   const exporter = holders.includes(exporterSel) ? exporterSel : (holders.includes(g.defaultExporter) ? g.defaultExporter : (holders[0] ?? ''));
   const buyer = me;
   const stock = state.grainStockpiles[exporter]?.[g.key] ?? 0;
-  const valid = !locked && !!buyer && !!exporter && buyer !== exporter && qty > 0 && qty <= stock;
+  const valid = !bankrupt && !locked && !!buyer && !!exporter && buyer !== exporter && qty > 0 && qty <= stock;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!valid || !buyer) return;
+    if (!valid || !buyer || bankrupt) return;
     actions.submitGrain({ importer: buyer, exporter, commodity, quantityMT: qty, settlement });
     setSent(true);
     setTimeout(() => setSent(false), 3500);
@@ -234,7 +234,7 @@ function GrainExchange({ locked }: { locked: boolean }) {
                 </div>
               </Field>
               <Field label="Exporter">
-                <select className="field" value={exporter} onChange={(e) => setExporterSel(e.target.value)}>
+                <select className="field" value={exporter} onChange={(e) => setExporterSel(e.target.value)} disabled={bankrupt}>
                   {holders.map((c) => (
                     <option key={c}>{c}</option>
                   ))}
@@ -247,7 +247,7 @@ function GrainExchange({ locked }: { locked: boolean }) {
             </div>
           )}
           <Field label="Commodity">
-            <select className="field" value={commodity} onChange={(e) => setCommodity(e.target.value as GrainCommodity)}>
+            <select className="field" value={commodity} onChange={(e) => setCommodity(e.target.value as GrainCommodity)} disabled={bankrupt}>
               {GRAIN_TYPES.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.label}
@@ -256,7 +256,7 @@ function GrainExchange({ locked }: { locked: boolean }) {
             </select>
           </Field>
           <Field label={`Quantity (MT) — ${exporter || 'exporter'} holds ${fmtMT(stock)}`}>
-            <input type="number" min={1} max={stock} className="field tabular" value={qty} onChange={(e) => setQty(Number(e.target.value))} />
+            <input type="number" min={1} max={stock} className="field tabular" value={qty} onChange={(e) => setQty(Number(e.target.value))} disabled={bankrupt} />
           </Field>
           <fieldset className="space-y-2">
             <legend className="label mb-1">Settlement currency</legend>
@@ -268,6 +268,7 @@ function GrainExchange({ locked }: { locked: boolean }) {
                   role="radio"
                   aria-checked={settlement === s}
                   onClick={() => setSettlement(s)}
+                  disabled={bankrupt}
                   className={`border px-2 py-2 font-mono text-[11px] uppercase tracking-wider ${settlement === s ? (s === 'USD' ? 'border-crimson bg-crimson/10 text-crimson' : 'border-emerald bg-emerald/10 text-emerald') : 'border-hairline text-sage'}`}
                 >
                   {s === 'USD' ? 'USD' : 'BRICS Pay / Local'}
@@ -280,8 +281,8 @@ function GrainExchange({ locked }: { locked: boolean }) {
               <p className="tabular text-[11px] text-emerald">0% clearing fee. Chair approval lifts BRICS Pay adoption.</p>
             )}
           </fieldset>
-          <button className="btn btn-gold w-full" type="submit" disabled={!valid}>
-            <Send size={13} /> Submit Agri-Commodity Swap Request
+          <button className="btn btn-gold w-full" type="submit" disabled={!valid || bankrupt}>
+            <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (GGs) // Contracts locked' : 'Submit Agri-Commodity Swap Request'}
           </button>
           {qty > stock && <p className="tabular text-[11px] text-crimson">Quantity exceeds exporter stockpile.</p>}
           {sent && (
@@ -314,6 +315,135 @@ function GrainExchange({ locked }: { locked: boolean }) {
           </tbody>
         </table>
       </div>
+    </Panel>
+  );
+}
+
+function EmergencyBailoutForm() {
+  const { me, actions, reserves, bankrupt } = useStore();
+  const [recipient, setRecipient] = useState('');
+  const [amount, setAmount] = useState(500000);
+  const [sent, setSent] = useState(false);
+
+  const valid = !bankrupt && !!me && !!recipient && me !== recipient && amount > 0 && amount <= reserves;
+
+  const handleWire = (e: FormEvent) => {
+    e.preventDefault();
+    if (!valid || !me || bankrupt) return;
+    actions.wireBailout(me, recipient, amount);
+    setSent(true);
+    setTimeout(() => setSent(false), 3500);
+  };
+
+  return (
+    <Panel title="Wire Emergency Bailout // Reserves Transfer" tone={bankrupt ? 'crimson' : 'gold'}>
+      <form onSubmit={handleWire} className="space-y-3">
+        <p className="text-xs text-sage">
+          Directly wire sovereign reserves from your national treasury to stabilize an ally facing default.
+        </p>
+
+        {me ? (
+          <div className="flex items-center justify-between border border-hairline bg-charcoal/60 p-2.5 text-xs font-mono">
+            <span className="text-sage">YOUR LIQUID RESERVES:</span>
+            <span className={`tabular font-bold ${bankrupt ? 'text-crimson' : 'text-gold'}`}>
+              ${Math.round(reserves).toLocaleString()}
+            </span>
+          </div>
+        ) : (
+          <div className="border border-gold/40 bg-gold/10 p-2.5 text-xs text-gold font-mono">
+            Authenticate delegation PIN to wire emergency reserves.
+          </div>
+        )}
+
+        <Field label="Recipient Delegation">
+          <select
+            className="field"
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+            required
+            disabled={!me || bankrupt}
+          >
+            <option value="">— Select Target Country —</option>
+            <optgroup label="FULL BRICS MEMBERS (11)">
+              {FULL_MEMBERS.filter((c) => c.name !== me).map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="BRICS PARTNERS (11)">
+              {PARTNERS.filter((c) => c.name !== me).map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+        </Field>
+
+        <Field label="Transfer Amount ($USD Reserves)">
+          <div className="space-y-2">
+            <input
+              type="number"
+              min={10000}
+              max={Math.max(10000, reserves)}
+              step={50000}
+              className="field tabular font-bold text-gold font-mono"
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              disabled={!me || bankrupt}
+            />
+            <div className="grid grid-cols-4 gap-1 text-[10px] font-mono">
+              <button
+                type="button"
+                onClick={() => setAmount(250000)}
+                className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                disabled={!me || bankrupt}
+              >
+                $250k
+              </button>
+              <button
+                type="button"
+                onClick={() => setAmount(500000)}
+                className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                disabled={!me || bankrupt}
+              >
+                $500k
+              </button>
+              <button
+                type="button"
+                onClick={() => setAmount(1000000)}
+                className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                disabled={!me || bankrupt}
+              >
+                $1M
+              </button>
+              <button
+                type="button"
+                onClick={() => setAmount(2000000)}
+                className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                disabled={!me || bankrupt}
+              >
+                $2M
+              </button>
+            </div>
+          </div>
+        </Field>
+
+        <button
+          className="btn btn-gold w-full"
+          type="submit"
+          disabled={!valid || bankrupt}
+        >
+          <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (GGs) // Treasury empty' : 'Wire Emergency Bailout Funds'}
+        </button>
+
+        {sent && (
+          <p role="status" className="flex items-center gap-2 border border-emerald/50 bg-emerald/10 px-3 py-2 font-mono text-[11px] uppercase text-emerald">
+            <Check size={13} /> Bailout wired to {recipient}!
+          </p>
+        )}
+      </form>
     </Panel>
   );
 }
@@ -420,7 +550,7 @@ export default function Trade() {
       )}
 
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 2xl:grid-cols-3">
-        <div>
+        <div className="space-y-3">
           {locked ? (
             <Panel title="Money Transfers" tone="crimson">
               <div className="grid place-items-center gap-3 py-10 text-center">
@@ -434,6 +564,7 @@ export default function Trade() {
               <TradeForm kind={kind} key={kind} />
             </Panel>
           )}
+          <EmergencyBailoutForm />
         </div>
 
         <GrainExchange locked={locked || barter} />

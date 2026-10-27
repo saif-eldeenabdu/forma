@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Hand, HelpCircle, Mic, UserPlus, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Hand, HelpCircle, Mic, Users } from 'lucide-react';
 import { COUNTRY_NAMES, useNow, useStore } from '../lib/store';
 import { deriveTimer, fmtClock } from '../lib/timer';
 import { chime } from '../lib/audio';
@@ -113,44 +114,55 @@ export function TimerPanel() {
 }
 
 export function GslPanel() {
-  const { state, me, actions } = useStore();
+  const { state, me } = useStore();
   const cs = state.committeeState;
   const queue = cs.gslQueue;
-  const pos = me ? queue.indexOf(me) : -1;
-  const pending = !!me && cs.gslRequests.some((r) => r.country === me);
+  const myIndex = queue.findIndex((item) => (typeof item === 'string' ? item : item.country) === me);
+  const myItem = myIndex >= 0 ? queue[myIndex] : null;
 
   return (
     <Panel
-      title="General Speakers List"
+      title="General Speakers List // Auction Queue"
       right={<span className="tabular text-[11px] text-sage">{queue.length} queued</span>}
       bodyClass="p-0"
     >
       <ol className="divide-y divide-hairline">
-        {queue.length === 0 && <li className="px-3 py-4 text-sm text-sage">List is empty. Request to be added below.</li>}
-        {queue.map((c, i) => {
+        {queue.length === 0 && <li className="px-3 py-4 text-sm text-sage">Queue is empty. Place bids on the Floor tab.</li>}
+        {queue.map((item, i) => {
+          const c = typeof item === 'string' ? item : item.country;
+          const bid = typeof item === 'string' ? 0 : item.bid;
           const code = byName(c)?.code;
           const mine = c === me;
           return (
-            <li key={`${c}-${i}`} className={`flex items-center gap-3 px-3 py-2 ${i === 0 ? 'bg-gold/10' : ''} ${mine ? 'border-l-2 border-gold' : 'border-l-2 border-transparent'}`}>
+            <li key={`${c}-${i}`} className={`flex items-center gap-3 px-3 py-2.5 ${i === 0 ? 'bg-gold/10' : ''} ${mine ? 'border-l-2 border-gold bg-charcoal/40' : 'border-l-2 border-transparent'}`}>
               <span className="tabular w-6 text-[11px] text-sage">{String(i + 1).padStart(2, '0')}</span>
-              <span className={`font-serif text-lg leading-none ${i === 0 ? 'text-gold' : 'text-ivory'}`}>{c}</span>
-              <span className="tabular text-[10px] text-sage">{code}</span>
-              {i === 0 && <span className="ml-auto label !text-gold">On floor</span>}
-              {mine && i !== 0 && <span className="ml-auto label !text-emerald">You</span>}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className={`font-serif text-lg leading-none truncate ${i === 0 ? 'text-gold font-bold' : 'text-ivory'}`}>{c}</span>
+                  {code && <span className="tabular text-[10px] text-sage">[{code}]</span>}
+                </div>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="tabular font-mono text-xs font-semibold text-gold">
+                    ${bid.toLocaleString()} BID
+                  </span>
+                  {i === 0 && <span className="border border-gold/60 bg-gold/15 px-1 py-0.2 font-mono text-[9px] uppercase text-gold">On Floor</span>}
+                </div>
+              </div>
+              {mine && <span className="label !text-emerald shrink-0">You</span>}
             </li>
           );
         })}
       </ol>
       <div className="border-t border-hairline p-3">
-        {me && pos >= 0 && (
+        {me && myIndex >= 0 && (
           <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-emerald">
-            {me}: position {pos + 1} of {queue.length}
+            {me}: position {myIndex + 1} of {queue.length} (Bid: ${((typeof myItem === 'string' ? 0 : myItem?.bid) || 0).toLocaleString()})
           </p>
         )}
-        <button className="btn w-full" disabled={!me || pos >= 0 || pending} onClick={() => me && actions.requestGsl(me)}>
-          <UserPlus size={13} /> {pos >= 0 ? 'Already on the list' : pending ? 'Request sent — awaiting Chair' : 'Request to be Added to GSL'}
-        </button>
-        {!me && <p className="mt-2 text-xs text-sage">Select your delegation (header / footer) to request a slot.</p>}
+        <Link to="/floor" className="btn btn-gold w-full flex items-center justify-center gap-2 text-center">
+          <span>GSL Auction Desk → Place / Raise Bid</span>
+        </Link>
+        {!me && <p className="mt-2 text-xs text-sage">Authenticate delegation PIN to enter speaking auction.</p>}
       </div>
     </Panel>
   );

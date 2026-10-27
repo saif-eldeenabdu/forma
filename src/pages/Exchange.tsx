@@ -21,7 +21,7 @@ import { byName } from '../data/countries';
 import { PageHeader, Panel } from '../components/ui';
 
 export default function Exchange() {
-  const { state, actions, me } = useStore();
+  const { state, actions, me, bankrupt } = useStore();
   const { exchangeState } = state;
   const { marketStatus, tickers, portfolios } = exchangeState;
 
@@ -67,6 +67,9 @@ export default function Exchange() {
   } else if (!me) {
     canExecute = false;
     validationMessage = 'VIEWER MODE: Authenticate country PIN to execute orders';
+  } else if (bankrupt) {
+    canExecute = false;
+    validationMessage = 'SOVEREIGN DEFAULT (GGs): Trading suspended until treasury bailed out';
   } else if (quantity <= 0) {
     canExecute = false;
     validationMessage = 'Quantity must be at least 1';
@@ -549,9 +552,9 @@ export default function Exchange() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={!canExecute}
+                disabled={!canExecute || bankrupt}
                 className={`w-full py-3 font-mono text-xs font-bold uppercase tracking-[0.14em] transition-opacity ${
-                  !canExecute
+                  !canExecute || bankrupt
                     ? 'cursor-not-allowed bg-charcoal text-sage opacity-50'
                     : orderAction === 'BUY'
                     ? 'btn-emerald'
@@ -560,7 +563,9 @@ export default function Exchange() {
                     : 'bg-crimson text-ivory hover:bg-crimson/90'
                 }`}
               >
-                {marketStatus !== 'OPEN'
+                {bankrupt
+                  ? 'SOVEREIGN DEFAULT (GGs) // Trading Suspended'
+                  : marketStatus !== 'OPEN'
                   ? 'MARKET CLOSED'
                   : !me
                   ? 'CLAIM DELEGATION TO TRADE'

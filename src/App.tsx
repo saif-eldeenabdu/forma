@@ -9,6 +9,7 @@ const Exchange = lazy(() => import('./pages/Exchange'));
 const Trade = lazy(() => import('./pages/Trade'));
 const Dossiers = lazy(() => import('./pages/Dossiers'));
 const Briefing = lazy(() => import('./pages/Briefing'));
+const Comms = lazy(() => import('./pages/Comms'));
 const Admin = lazy(() => import('./pages/Admin'));
 
 const Fallback = () => <p className="label p-6">Loading module…</p>;
@@ -24,6 +25,7 @@ export default function App() {
               <Route path="floor" element={<Floor />} />
               <Route path="exchange" element={<Exchange />} />
               <Route path="trade" element={<Trade />} />
+              <Route path="comms" element={<Comms />} />
               <Route path="dossiers" element={<Dossiers />} />
               <Route path="briefing" element={<Briefing />} />
               <Route path="admin" element={<Admin />} />

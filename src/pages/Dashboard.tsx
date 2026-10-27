@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Area, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { useFiatFrozen, useNow, useStore } from '../lib/store';
+import { getReserves, isBankrupt, useFiatFrozen, useNow, useStore } from '../lib/store';
 import { COUNTRIES, byCurrency } from '../data/countries';
 import { fmtClock } from '../lib/timer';
 import { AnimatedNumber, Panel, Sparkline } from '../components/ui';
@@ -302,11 +302,15 @@ function Roster() {
           const speaking = cs.timer.currentSpeaker === c.name && cs.timer.type !== 'UNMOD';
           const left = s ? Math.max(0, s.until - tick) / 1000 : 0;
           const isFull = c.tier === 'FULL BRICS MEMBER';
+          const res = getReserves(state, c.name);
+          const bankrupt = isBankrupt(state, c.name);
           return (
             <Link
               key={c.name}
               to="/dossiers"
-              className={`relative block p-3 transition-colors hover:bg-charcoal ${isSanctioned ? 'bg-crimson/15 border border-crimson/40' : ''}`}
+              className={`relative block p-3 transition-colors hover:bg-charcoal ${
+                bankrupt ? 'bg-crimson/25 border border-crimson' : isSanctioned ? 'bg-crimson/15 border border-crimson/40' : ''
+              }`}
             >
               <div className="flex items-center justify-between">
                 <span className="tabular text-[11px] text-sage">{c.code}</span>
@@ -319,8 +323,21 @@ function Roster() {
                 </span>
               </div>
               <p className="mt-1 font-serif text-lg leading-tight">{c.short}</p>
+
+              {/* Sovereign Reserves Display */}
+              <div className="mt-1.5 flex items-center justify-between font-mono text-[11px]">
+                <span className="text-[10px] text-sage">RESERVES:</span>
+                <span className={`tabular font-bold ${bankrupt ? 'text-crimson' : 'text-gold'}`}>
+                  ${Math.round(res).toLocaleString()}
+                </span>
+              </div>
+
               <div className="mt-2 min-h-[22px]">
-                {isSanctioned ? (
+                {bankrupt ? (
+                  <span className="stamp !border-crimson !text-crimson animate-pulse block text-center">
+                    💀 SOVEREIGN DEFAULT // GGs (RESERVES DEPLETED)
+                  </span>
+                ) : isSanctioned ? (
                   <>
                     <span className="stamp">Sanctioned // SWIFT cutoff</span>
                     {s && <p className="tabular mt-1 text-[10px] text-crimson">{left > 0 ? `BAIL-OUT WINDOW ${fmtClock(left)}` : 'BAIL-OUT WINDOW CLOSED'}</p>}
@@ -341,6 +358,75 @@ function Roster() {
   );
 }
 
+function CyberAttackOverlay() {
+  const { state, actions, isChair } = useStore();
+  const cs = state.committeeState;
+  if (!cs.cyberAttackActive) return null;
+
+  const msgs = (state.backchannelMessages || []).slice(-10).reverse();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/95 p-4 backdrop-blur-md">
+      <div className="relative w-full max-w-4xl border-2 border-crimson bg-charcoal p-6 shadow-[0_0_100px_rgba(225,29,72,0.6)] font-mono">
+        <div className="flex flex-wrap items-center justify-between border-b-2 border-crimson pb-4">
+          <div className="flex items-center gap-3">
+            <span className="h-4 w-4 rounded-full bg-crimson animate-ping" />
+            <h1 className="text-xl sm:text-2xl font-black text-crimson uppercase tracking-widest">
+              HACKED // NSA &amp; BRICS CYBER BREACH
+            </h1>
+          </div>
+          <span className="border border-crimson bg-crimson/20 px-3 py-1 text-xs font-bold uppercase text-crimson">
+            BACK-CHANNELS COMPROMISED // PUBLIC INTERCEPT
+          </span>
+        </div>
+
+        <p className="my-3 text-xs text-gold uppercase tracking-wider">
+          CRITICAL SECURITY INCIDENT: CLASSIFIED DIPLOMATIC TRAFFIC EXPOSED. LIVE INTERCEPT FEED:
+        </p>
+
+        <div className="my-4 max-h-[360px] space-y-2 overflow-y-auto border border-crimson/40 bg-obsidian/80 p-3">
+          {msgs.length === 0 ? (
+            <p className="py-6 text-center text-xs text-sage">NO DIPLOMATIC TRAFFIC LOGGED ON COMPROMISED FREQUENCIES.</p>
+          ) : (
+            msgs.map((m) => (
+              <div key={m.id} className="border-b border-hairline/60 pb-2 text-xs">
+                <div className="flex items-center justify-between text-sage">
+                  <span>
+                    <span className="text-gold font-bold">[{m.from}]</span>
+                    <span className="mx-1 text-crimson">→</span>
+                    <span className="text-emerald font-bold">[{m.to}]</span>
+                  </span>
+                  <span className="tabular text-[10px]">{new Date(m.createdAt).toLocaleTimeString()}</span>
+                </div>
+                <p className="mt-1 text-ivory">{m.text}</p>
+                {m.leaked && (
+                  <span className="mt-1 inline-block text-[9px] uppercase tracking-wider text-crimson font-bold">
+                    [CONFIRMED PRESS LEAK]
+                  </span>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4">
+          <p className="text-[11px] text-sage">
+            CYBER SURVEILLANCE FEED IS BROADCASTING LIVE ACROSS THE ENTIRE COMMITTEE TERMINAL.
+          </p>
+          {isChair && (
+            <button
+              onClick={() => actions.setCyberAttack(false)}
+              className="btn btn-crimson"
+            >
+              CHAIR: SECURE NETWORK &amp; CLOSE BREACH
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { state } = useStore();
   const cs = state.committeeState;
@@ -350,6 +436,7 @@ export default function Dashboard() {
 
   return (
     <div className={`space-y-3 transition-all duration-500 ${isBarterCrisis ? 'p-3 md:p-5 border-2 border-crimson flash-border bg-crimson/[0.08] shadow-[0_0_80px_rgba(225,29,72,0.35)]' : ''}`}>
+      <CyberAttackOverlay />
       {isBarterCrisis && (
         <div className="flash-border border-2 border-crimson bg-crimson/20 p-4 text-center">
           <div className="flex items-center justify-center gap-3">

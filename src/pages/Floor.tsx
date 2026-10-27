@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Check, EyeOff, Lock, Send, UserPlus } from 'lucide-react';
+import { Check, EyeOff, Lock, Send } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { MOTION_ORDER, sortMotions } from '../lib/motions';
 import type { MotionType, SuezCurrency } from '../lib/types';
@@ -26,7 +26,7 @@ function Confirm({ msg }: { msg: string }) {
 }
 
 function MotionForm() {
-  const { me, actions } = useStore();
+  const { me, actions, bankrupt } = useStore();
   const { msg, flash } = useFlash();
   const [type, setType] = useState<MotionType>('Moderated Caucus');
   const [mins, setMins] = useState(10);
@@ -35,11 +35,11 @@ function MotionForm() {
 
   const needsTotal = type === 'Moderated Caucus' || type === 'Unmoderated Caucus';
   const needsSpeaker = type === 'Moderated Caucus' || type === 'Set Speaking Time';
-  const valid = !!me && (!needsTotal || mins > 0) && (!needsSpeaker || speaker > 0) && topic.trim().length > 0;
+  const valid = !bankrupt && !!me && (!needsTotal || mins > 0) && (!needsSpeaker || speaker > 0) && topic.trim().length > 0;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!valid || !me) return;
+    if (!valid || !me || bankrupt) return;
     actions.submitMotion({
       delegation: me,
       type,
@@ -95,8 +95,8 @@ function MotionForm() {
         <Field label="Topic / purpose">
           <textarea className="field min-h-[84px] resize-y" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Gold-Backed Settlement Mechanisms" required />
         </Field>
-        <button className="btn btn-gold w-full" type="submit" disabled={!valid}>
-          <Send size={13} /> Submit Motion
+        <button className="btn btn-gold w-full" type="submit" disabled={!valid || bankrupt}>
+          <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (GGs) // Proposals locked' : 'Submit Motion'}
         </button>
         <Confirm msg={msg} />
       </form>
@@ -143,56 +143,138 @@ function MotionLedger() {
   );
 }
 
-function GslRequest() {
-  const { state, me, actions } = useStore();
+function GslAuctionDesk() {
+  const { state, me, actions, reserves, bankrupt } = useStore();
   const { msg, flash } = useFlash();
   const cs = state.committeeState;
-  const queued = me ? cs.gslQueue.includes(me) : false;
-  const pending = me ? cs.gslRequests.some((r) => r.country === me) : false;
+  const queue = cs.gslQueue;
+  const myItem = me ? queue.find((item) => (typeof item === 'string' ? item : item.country) === me) : null;
+  const myBid = typeof myItem === 'string' ? 0 : myItem?.bid ?? 0;
+  const myPos = myItem ? queue.indexOf(myItem) + 1 : 0;
+
+  const [bidAmount, setBidAmount] = useState(myBid > 0 ? myBid : 100000);
+
+  const minBid = 100000;
+  const isValid = !bankrupt && !!me && bidAmount >= minBid && bidAmount <= reserves;
+
+  const submitBid = (e: FormEvent) => {
+    e.preventDefault();
+    if (!isValid || !me || bankrupt) return;
+    actions.placeGslBid(bidAmount, me);
+    flash(`Bid of $${bidAmount.toLocaleString()} submitted to Speaking Auction!`);
+  };
+
   return (
-    <Panel title="Request to be Added to the GSL">
-      <div className="space-y-3">
+    <Panel title="GSL Speaking Time Auction Desk" tone={bankrupt ? 'crimson' : 'gold'}>
+      <form onSubmit={submitBid} className="space-y-3 font-mono">
+        <p className="text-xs text-sage font-sans">
+          Speaking slots are awarded in descending order of sovereign reserve bids. Taking the floor permanently deducts your bid from liquid reserves.
+        </p>
+
         {me ? (
-          <Field label="Delegation">
+          <Field label="Authenticated Delegation">
             <div className="field flex items-center justify-between bg-charcoal/60 text-ivory">
               <span className="flex items-center gap-2">
                 <Lock size={12} className="text-gold" />
-                <span className="font-mono text-sm">{me}</span>
+                <span className="text-sm">{me}</span>
               </span>
-              <span className="font-mono text-[9px] uppercase tracking-wider text-gold">Authenticated</span>
+              <span className="text-[10px] text-gold uppercase tracking-wider">
+                Reserves: ${Math.round(reserves).toLocaleString()}
+              </span>
             </div>
           </Field>
         ) : (
-          <div className="border border-gold/40 bg-gold/10 p-3 font-mono text-xs text-gold">
-            Authenticate as a delegation to request speaking time.
+          <div className="border border-gold/40 bg-gold/10 p-3 text-xs text-gold">
+            Authenticate delegation PIN to enter speaking auction.
           </div>
         )}
-        <button
-          className="btn w-full"
-          disabled={!me || queued || pending}
-          onClick={() => {
-            if (!me) return;
-            actions.requestGsl(me);
-            flash('Request sent to the Chair');
-          }}
-        >
-          <UserPlus size={13} /> {!me ? 'Authenticate Delegation' : queued ? 'Already on the list' : pending ? 'Request pending' : 'One-click request'}
-        </button>
+
+        {myItem && (
+          <div className="border border-emerald/50 bg-emerald/10 p-2.5 text-xs text-emerald flex items-center justify-between">
+            <span>Currently Queued: Position #{myPos} of {queue.length}</span>
+            <span className="font-bold">${myBid.toLocaleString()} BID</span>
+          </div>
+        )}
+
+        {bankrupt ? (
+          <div className="border border-crimson bg-crimson/20 p-3 text-xs text-crimson font-bold text-center">
+            💀 SOVEREIGN DEFAULT // Bidding locked until bailed out.
+          </div>
+        ) : (
+          <>
+            <Field label="Auction Bid Amount ($USD Reserves)">
+              <div className="space-y-2">
+                <input
+                  type="number"
+                  min={minBid}
+                  max={Math.max(minBid, reserves)}
+                  step={50000}
+                  className="field tabular font-bold text-gold"
+                  value={bidAmount}
+                  onChange={(e) => setBidAmount(Number(e.target.value))}
+                  disabled={!me || bankrupt}
+                />
+                <div className="grid grid-cols-4 gap-1.5 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setBidAmount((b) => Math.min(reserves, Math.max(minBid, b + 100000)))}
+                    className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                    disabled={!me || bankrupt}
+                  >
+                    +$100k
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBidAmount((b) => Math.min(reserves, Math.max(minBid, b + 250000)))}
+                    className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                    disabled={!me || bankrupt}
+                  >
+                    +$250k
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBidAmount((b) => Math.min(reserves, Math.max(minBid, b + 500000)))}
+                    className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                    disabled={!me || bankrupt}
+                  >
+                    +$500k
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBidAmount(Math.max(minBid, reserves))}
+                    className="border border-gold/60 bg-gold/10 p-1 text-gold hover:bg-gold/20 font-bold"
+                    disabled={!me || bankrupt}
+                  >
+                    MAX
+                  </button>
+                </div>
+              </div>
+            </Field>
+
+            <button
+              className="btn btn-gold w-full"
+              type="submit"
+              disabled={!isValid || bankrupt}
+            >
+              <Send size={13} /> {myItem ? `Update GSL Bid ($${bidAmount.toLocaleString()})` : `Place Speaking Bid ($${bidAmount.toLocaleString()})`}
+            </button>
+          </>
+        )}
         <Confirm msg={msg} />
-      </div>
+      </form>
     </Panel>
   );
 }
 
 function DirectiveForm() {
-  const { me, actions } = useStore();
+  const { me, actions, bankrupt } = useStore();
   const { msg, flash } = useFlash();
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
-  const valid = !!me && subject.trim().length > 0 && body.trim().length > 0;
+  const valid = !bankrupt && !!me && subject.trim().length > 0 && body.trim().length > 0;
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!valid || !me) return;
+    if (!valid || !me || bankrupt) return;
     actions.submitDirective({ from: me, subject: subject.trim(), body: body.trim() });
     setSubject('');
     setBody('');
@@ -223,8 +305,8 @@ function DirectiveForm() {
         <Field label="Directive">
           <textarea className="field min-h-[84px] resize-y" value={body} onChange={(e) => setBody(e.target.value)} required />
         </Field>
-        <button className="btn btn-gold w-full" type="submit" disabled={!valid}>
-          <Send size={13} /> Send to Chair
+        <button className="btn btn-gold w-full" type="submit" disabled={!valid || bankrupt}>
+          <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (GGs) // Directives locked' : 'Send to Chair'}
         </button>
         <Confirm msg={msg} />
       </form>
@@ -233,7 +315,7 @@ function DirectiveForm() {
 }
 
 function SuezDecree() {
-  const { state, me, actions } = useStore();
+  const { state, me, actions, bankrupt } = useStore();
   const { msg, flash } = useFlash();
   const current = state.committeeState.suezTollCurrency;
   const [choice, setChoice] = useState<SuezCurrency>(current === 'USD' ? 'BRICS_PAY' : 'USD');
@@ -262,13 +344,13 @@ function SuezDecree() {
         </div>
         <button
           className="btn btn-gold w-full"
-          disabled={noChange || pending}
+          disabled={noChange || pending || bankrupt}
           onClick={() => {
             actions.submitSuezDirective(choice);
             flash('Sovereign toll directive sent to the Chair');
           }}
         >
-          <Send size={13} /> {pending ? 'Directive awaiting Chair' : 'Submit sovereign toll directive to Chair'}
+          <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (GGs) // Decrees locked' : pending ? 'Directive awaiting Chair' : 'Submit sovereign toll directive to Chair'}
         </button>
         <Confirm msg={msg} />
       </div>
@@ -287,7 +369,7 @@ export default function Floor() {
           <MotionLedger />
           <div className="space-y-3">
             <SuezDecree />
-            <GslRequest />
+            <GslAuctionDesk />
             <DirectiveForm />
           </div>
         </div>

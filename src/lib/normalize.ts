@@ -1,4 +1,4 @@
-import type { CommitteeState, Currency, DelegationPortfolio, ExchangeState, ExchangeTicker, GrainStock, RootState, TickerSymbol } from './types';
+import type { CommitteeState, Currency, DelegationPortfolio, ExchangeState, ExchangeTicker, GrainStock, GslItem, RootState, TickerSymbol } from './types';
 import { createSeed } from './seed';
 import { DEFAULT_DELEGATION_PINS } from '../data/countries';
 import { defaultPortfolio, TICKER_SYMBOLS } from '../data/exchange';
@@ -24,11 +24,31 @@ export function normalize(raw: unknown): RootState {
   const cs = (r.committeeState ?? {}) as Partial<CommitteeState>;
   const rawFreeze = (cs as Record<string, any>).assetFreeze as Record<string, any> | null | undefined;
 
+  const rawGsl = cs.gslQueue !== undefined
+    ? toArray<any>(cs.gslQueue)
+    : (raw == null ? seed.committeeState.gslQueue : []);
+  const normalizedGsl: GslItem[] = rawGsl
+    .map((item: any, idx: number) => {
+      if (typeof item === 'string') {
+        return { country: item, bid: 0, timestamp: idx };
+      }
+      if (item && typeof item === 'object') {
+        return {
+          country: String(item.country || ''),
+          bid: Number(item.bid) || 0,
+          timestamp: Number(item.timestamp) || 0,
+        };
+      }
+      return null;
+    })
+    .filter((x): x is GslItem => Boolean(x && x.country))
+    .sort((a, b) => b.bid - a.bid || a.timestamp - b.timestamp);
+
   const committeeState: CommitteeState = {
     ...seed.committeeState,
     ...cs,
     timer: { ...seed.committeeState.timer, ...(cs.timer ?? {}) },
-    gslQueue: toArray<string>(cs.gslQueue),
+    gslQueue: normalizedGsl,
     gslRequests: toArray<any>(cs.gslRequests).sort(byTime('at')),
     projectedMotionId: cs.projectedMotionId ?? '',
     activeCrisisBanner: cs.activeCrisisBanner ?? '',
@@ -49,6 +69,7 @@ export function normalize(raw: unknown): RootState {
           signers: Array.isArray(rawFreeze.signers) ? rawFreeze.signers : Object.keys(rawFreeze.signers ?? {}),
         }
       : null,
+    cyberAttackActive: Boolean(cs.cyberAttackActive),
   };
 
   const currencies: Record<string, Currency> = {};
@@ -124,5 +145,6 @@ export function normalize(raw: unknown): RootState {
     grainContracts: toArray<any>(r.grainContracts).sort(byTime('createdAt')),
     delegationPins,
     exchangeState,
+    backchannelMessages: toArray<any>(r.backchannelMessages).sort(byTime('createdAt')),
   };
 }

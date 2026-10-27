@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Activity, BookOpen, Globe2, Landmark, Lock, Repeat, ScrollText, Volume2, VolumeX, X, Gavel, TrendingUp } from 'lucide-react';
+import { Activity, BookOpen, Globe2, Landmark, Lock, MessageSquare, Repeat, ScrollText, Volume2, VolumeX, X, Gavel, TrendingUp } from 'lucide-react';
 import { useNow, useStore } from '../lib/store';
 import { FULL_MEMBERS, PARTNERS } from '../data/countries';
 import { isMuted, setMuted } from '../lib/audio';
@@ -12,6 +12,7 @@ const NAV = [
   { to: '/floor', label: 'Floor', icon: Gavel },
   { to: '/exchange', label: 'Exchange', icon: TrendingUp },
   { to: '/trade', label: 'Trade', icon: Repeat },
+  { to: '/comms', label: 'Comms', icon: MessageSquare },
   { to: '/dossiers', label: 'Dossiers', icon: Landmark },
   { to: '/briefing', label: 'Briefing', icon: BookOpen },
 ];
@@ -209,13 +210,16 @@ function Clock() {
 }
 
 export default function Layout() {
-  const { state, me, releaseDelegation, isChair, lock, toast: stateToast } = useStore();
+  const { state, me, reserves, bankrupt, releaseDelegation, isChair, lock, toast: stateToast } = useStore();
   const navigate = useNavigate();
   const [pinOpen, setPinOpen] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
   const cs = state.committeeState;
   const incomingTrades = me ? state.trades.filter((t) => t.to === me && t.status === 'PENDING_COUNTERPARTY').length : 0;
+  const unreadComms = me
+    ? (state.backchannelMessages || []).filter((m) => m.from !== me && (m.to === me || m.to === 'GLOBAL')).length
+    : 0;
   const ledger = state.trades
     .filter((t) => t.kind === 'BARTER' && t.status === 'APPROVED')
     .map((t, i) => `LEDGER #${String(i + 1).padStart(3, '0')} — ${t.from} ⇄ ${t.to}: ${t.offer} FOR ${t.request}`);
@@ -252,6 +256,11 @@ export default function Layout() {
                         {incomingTrades}
                       </span>
                     )}
+                    {n.to === '/comms' && unreadComms > 0 && (
+                      <span className="ml-1.5 rounded-full bg-crimson px-1.5 py-0.2 font-mono text-[9px] font-bold text-ivory animate-pulse">
+                        {unreadComms}
+                      </span>
+                    )}
                     {isActive && <motion.span layoutId="nav-underline" className="absolute inset-x-2 -bottom-[9px] h-px bg-gold" />}
                   </>
                 )}
@@ -275,6 +284,15 @@ export default function Layout() {
                 <div className="flex items-center gap-2 border border-gold/40 bg-charcoal px-3 py-1 font-mono text-[11px]">
                   <Lock size={12} className="text-gold" />
                   <span className="font-bold uppercase tracking-wider text-ivory">{me}</span>
+                  <span
+                    className={`ml-1 border px-2 py-0.5 tabular font-mono text-[10px] font-bold ${
+                      bankrupt
+                        ? 'border-crimson bg-crimson/20 text-crimson animate-pulse'
+                        : 'border-emerald/40 bg-emerald/10 text-emerald'
+                    }`}
+                  >
+                    {bankrupt ? '💀 $0 [GGs]' : `RESERVES: $${Math.round(reserves).toLocaleString()}`}
+                  </span>
                   <button
                     onClick={releaseDelegation}
                     className="ml-2 text-[10px] text-sage underline hover:text-crimson"
@@ -295,6 +313,11 @@ export default function Layout() {
             <Clock />
           </div>
         </div>
+        {me && bankrupt && (
+          <div className="border-y-2 border-crimson bg-crimson/30 px-4 py-2 text-center font-mono text-xs font-black uppercase tracking-[0.2em] text-ivory shadow-[0_0_20px_rgba(239,68,68,0.5)] animate-pulse">
+            💀 SOVEREIGN DEFAULT: YOUR TREASURY IS EMPTY (GGs). YOU CANNOT BID FOR SPEECHES, SUBMIT MOTIONS, OR TRADE UNTIL BAILED OUT 💀
+          </div>
+        )}
         {cs.currentMode !== 'NORMAL' && cs.activeCrisisBanner && (
           <div className="flash-border border-y-2 bg-crimson/15 px-4 py-1.5 text-center font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-crimson">
             ▲ {cs.activeCrisisBanner} ▲
@@ -337,9 +360,12 @@ export default function Layout() {
             {me ? (
               <div className="flex items-center gap-1.5 border border-gold/40 bg-charcoal px-2 py-1 font-mono text-[10px] lg:hidden">
                 <Lock size={11} className="text-gold" />
-                <span className="truncate max-w-[120px] font-bold text-ivory">{me}</span>
+                <span className="truncate max-w-[80px] font-bold text-ivory">{me}</span>
+                <span className={`tabular text-[9px] font-bold ${bankrupt ? 'text-crimson animate-pulse' : 'text-emerald'}`}>
+                  {bankrupt ? '💀 GGs' : `$${(reserves / 1_000_000).toFixed(1)}M`}
+                </span>
                 <button onClick={releaseDelegation} className="ml-1 text-[9px] text-crimson underline">
-                  Log Out
+                  Out
                 </button>
               </div>
             ) : (
@@ -370,25 +396,30 @@ export default function Layout() {
       </footer>
 
       {/* mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-hairline bg-obsidian md:hidden" aria-label="Mobile">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-hairline bg-obsidian md:hidden" aria-label="Mobile">
         {NAV.map((n) => (
           <NavLink
             key={n.to}
             to={n.to}
             end={n.end}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-1 py-2 font-mono text-[9px] uppercase tracking-wider ${isActive ? 'text-gold' : 'text-sage'}`
+              `flex flex-col items-center gap-1 py-2 font-mono text-[8px] uppercase tracking-wider ${isActive ? 'text-gold' : 'text-sage'}`
             }
           >
             <div className="relative">
-              <n.icon size={16} strokeWidth={1.5} />
+              <n.icon size={15} strokeWidth={1.5} />
               {n.to === '/trade' && incomingTrades > 0 && (
                 <span className="absolute -top-1 -right-2 rounded-full bg-crimson px-1 text-[8px] font-bold text-ivory animate-pulse">
                   {incomingTrades}
                 </span>
               )}
+              {n.to === '/comms' && unreadComms > 0 && (
+                <span className="absolute -top-1 -right-2 rounded-full bg-crimson px-1 text-[8px] font-bold text-ivory animate-pulse">
+                  {unreadComms}
+                </span>
+              )}
             </div>
-            {n.label}
+            <span className="truncate max-w-[45px]">{n.label}</span>
           </NavLink>
         ))}
       </nav>
