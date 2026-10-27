@@ -82,5 +82,6 @@ export function createSeed(now = Date.now()): RootState {
       portfolios: Object.fromEntries(COUNTRY_NAMES.map((c) => [c, defaultPortfolio()])),
     },
     backchannelMessages: [],
+    gossipBox: [],
   };
 }

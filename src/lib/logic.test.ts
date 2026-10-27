@@ -350,3 +350,30 @@ describe('Encrypted Back-Channels & Cyber Attacks', () => {
     expect(s.committeeState.cyberAttackActive).toBe(true);
   });
 });
+
+describe('Gossip Box System', () => {
+  it('normalizes gossipBox items and sorts newest first', () => {
+    const raw = toDbForm(createSeed()) as any;
+    raw.gossipBox = {
+      g1: { id: 'g1', message: 'First piece of gossip', timestamp: 1000, readByChair: false },
+      g2: { id: 'g2', message: 'Hot breaking rumor', timestamp: 2000, readByChair: false },
+    };
+    const s = normalize(raw);
+    expect(s.gossipBox).toHaveLength(2);
+    expect(s.gossipBox[0].id).toBe('g2');
+    expect(s.gossipBox[1].id).toBe('g1');
+  });
+
+  it('normalizes readByChair boolean and filters invalid gossip entries', () => {
+    const raw = toDbForm(createSeed()) as any;
+    raw.gossipBox = {
+      g1: { id: 'g1', message: 'Valid gossip', timestamp: 1000, readByChair: true },
+      g2: { id: 'g2', message: '', timestamp: 2000 },
+      g3: null,
+    };
+    const s = normalize(raw);
+    expect(s.gossipBox).toHaveLength(1);
+    expect(s.gossipBox[0].id).toBe('g1');
+    expect(s.gossipBox[0].readByChair).toBe(true);
+  });
+});

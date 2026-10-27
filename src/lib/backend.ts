@@ -27,6 +27,7 @@ export function toDbForm(seed: RootState): Record<string, unknown> {
     directives: {},
     grainContracts: {},
     backchannelMessages: {},
+    gossipBox: {},
   };
 }
 

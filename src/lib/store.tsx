@@ -21,6 +21,7 @@ import type {
   BackchannelMessage,
   CrisisAlert,
   DelegationPortfolio,
+  GossipItem,
   GrainCommodity,
   GrainSettlement,
   MarketStatus,
@@ -113,6 +114,10 @@ export interface Actions {
   sendBackchannelMessage(msg: { from: string; to: string; text: string }): void;
   leakBackchannelMessage(id: string): void;
   setCyberAttack(active: boolean): void;
+  // gossip box
+  submitGossip(message: string): void;
+  toggleGossipRead(id: string, read?: boolean): void;
+  deleteGossip(id: string): void;
   // toast
   showToast(msg: string): void;
 }
@@ -1071,6 +1076,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         write(u);
         showToast(active ? 'CYBER ATTACK ACTIVATED: Back-channels exposed!' : 'CYBER ATTACK CLEARED: Channels secured');
+      },
+      submitGossip(message) {
+        const text = message.trim();
+        if (!text) return;
+        const id = uid();
+        const item: GossipItem = {
+          id,
+          message: text,
+          timestamp: now(),
+          readByChair: false,
+        };
+        write({
+          [`gossipBox/${id}`]: item,
+        });
+      },
+      toggleGossipRead(id, read) {
+        const current = S().gossipBox?.find((g) => g.id === id);
+        const nextVal = typeof read === 'boolean' ? read : !current?.readByChair;
+        write({
+          [`gossipBox/${id}/readByChair`]: nextVal,
+        });
+      },
+      deleteGossip(id) {
+        write({
+          [`gossipBox/${id}`]: null,
+        });
+        showToast('GOSSIP REMOVED');
       },
       showToast(msg) {
         showToast(msg);

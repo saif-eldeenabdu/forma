@@ -1,4 +1,4 @@
-import type { CommitteeState, Currency, DelegationPortfolio, ExchangeState, ExchangeTicker, GrainStock, GslItem, RootState, TickerSymbol } from './types';
+import type { CommitteeState, Currency, DelegationPortfolio, ExchangeState, ExchangeTicker, GossipItem, GrainStock, GslItem, RootState, TickerSymbol } from './types';
 import { createSeed } from './seed';
 import { DEFAULT_DELEGATION_PINS } from '../data/countries';
 import { defaultPortfolio, TICKER_SYMBOLS } from '../data/exchange';
@@ -146,5 +146,14 @@ export function normalize(raw: unknown): RootState {
     delegationPins,
     exchangeState,
     backchannelMessages: toArray<any>(r.backchannelMessages).sort(byTime('createdAt')),
+    gossipBox: toArray<any>(r.gossipBox)
+      .map((item: any) => ({
+        id: String(item.id || ''),
+        message: String(item.message || ''),
+        timestamp: Number(item.timestamp) || 0,
+        readByChair: Boolean(item.readByChair),
+      }))
+      .filter((g: GossipItem) => Boolean(g.id && g.message))
+      .sort((a: GossipItem, b: GossipItem) => b.timestamp - a.timestamp),
   };
 }

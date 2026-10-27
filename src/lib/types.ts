@@ -185,6 +185,13 @@ export interface BackchannelMessage {
   leaked?: boolean;
 }
 
+export interface GossipItem {
+  id: string;
+  message: string;
+  timestamp: number;
+  readByChair: boolean;
+}
+
 export interface RootState {
   committeeState: CommitteeState;
   currencies: Record<string, Currency>;
@@ -197,6 +204,7 @@ export interface RootState {
   delegationPins: Record<string, string>;
   exchangeState: ExchangeState;
   backchannelMessages: BackchannelMessage[];
+  gossipBox: GossipItem[];
 }
 
 /** Multi-path update map: `a/b/c` -> value (null deletes). Mirrors Firebase `update()`. */

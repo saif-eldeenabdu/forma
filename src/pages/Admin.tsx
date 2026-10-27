@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, Check, DollarSign, Gavel, Landmark, Lock, Megaphone, Pause, Play, Radio, RotateCcw, ShieldCheck, SkipForward, Skull, Trash2, TrendingUp, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Check, DollarSign, Gavel, Landmark, Lock, Megaphone, Pause, Play, Radio, RotateCcw, ShieldCheck, SkipForward, Skull, Sparkles, Trash2, TrendingUp, X } from 'lucide-react';
 import { COUNTRIES, FULL_MEMBERS, PARTNERS, DEFAULT_DELEGATION_PINS } from '../data/countries';
 import { DEFAULT_TICKERS, TICKER_SYMBOLS, calculatePortfolioValue, STARTING_CASH } from '../data/exchange';
 import { BRICS_CLEAR_QUORUM, getReserves, isBankrupt, useNow, useStore } from '../lib/store';
@@ -12,7 +12,7 @@ import { Field, PageHeader, Panel, fmtSecondsLabel } from '../components/ui';
 import { TimerPanel } from '../components/Timer';
 import { motionLine } from '../components/Overlays';
 
-type Tab = 'timer' | 'motions' | 'markets' | 'marketMaker' | 'news' | 'trades' | 'crisis' | 'security' | 'wiretap';
+type Tab = 'timer' | 'motions' | 'markets' | 'marketMaker' | 'news' | 'trades' | 'crisis' | 'wiretap' | 'gossip' | 'security';
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'timer', label: 'Timers & GSL', icon: <Play size={13} /> },
   { id: 'motions', label: 'Motions', icon: <Gavel size={13} /> },
@@ -22,6 +22,7 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'trades', label: 'Trades & Directives', icon: <Landmark size={13} /> },
   { id: 'crisis', label: 'Big Bullshit Area', icon: <Skull size={13} /> },
   { id: 'wiretap', label: 'Wiretap / Cyber', icon: <Radio size={13} /> },
+  { id: 'gossip', label: 'Gossip Box', icon: <Sparkles size={13} /> },
   { id: 'security', label: 'Security / PINs', icon: <ShieldCheck size={13} /> },
 ];
 
@@ -1160,6 +1161,125 @@ function WiretapTab() {
   );
 }
 
+/* ------------------------------ Gossip Box (Chair View) ------------------------------ */
+function GossipTab() {
+  const { state, actions } = useStore();
+  const [filter, setFilter] = useState<'ALL' | 'UNREAD'>('ALL');
+
+  const allGossips = [...(state.gossipBox || [])].sort((a, b) => b.timestamp - a.timestamp);
+  const unreadCount = allGossips.filter((g) => !g.readByChair).length;
+  const displayed = filter === 'UNREAD' ? allGossips.filter((g) => !g.readByChair) : allGossips;
+
+  const fmtTime = (ts: number) => {
+    if (!ts) return 'UNKNOWN';
+    const d = new Date(ts);
+    return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+  };
+
+  return (
+    <div className="space-y-4">
+      <Panel
+        title={
+          <div className="flex items-center gap-2">
+            <span>Anonymous Gossip Box Feed</span>
+            <span className="font-mono text-[10px] text-sage">({allGossips.length} total • {unreadCount} unread)</span>
+          </div>
+        }
+        right={
+          <div className="flex items-center gap-1 border border-hairline bg-charcoal p-0.5">
+            <button
+              onClick={() => setFilter('ALL')}
+              className={`px-3 py-1 font-mono text-[10px] uppercase tracking-wider ${
+                filter === 'ALL' ? 'bg-gold text-obsidian font-bold' : 'text-sage hover:text-ivory'
+              }`}
+            >
+              ALL ({allGossips.length})
+            </button>
+            <button
+              onClick={() => setFilter('UNREAD')}
+              className={`flex items-center gap-1.5 px-3 py-1 font-mono text-[10px] uppercase tracking-wider ${
+                filter === 'UNREAD' ? 'bg-gold text-obsidian font-bold' : 'text-sage hover:text-ivory'
+              }`}
+            >
+              <span>UNREAD ONLY</span>
+              {unreadCount > 0 && (
+                <span className="tabular rounded-full bg-crimson px-1.5 py-0.2 text-[9px] font-bold text-ivory">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          {displayed.length === 0 ? (
+            <div className="border border-dashed border-hairline p-8 text-center">
+              <p className="font-mono text-xs uppercase tracking-widest text-sage">
+                {filter === 'UNREAD' ? 'No unread gossips in the box.' : 'No gossips submitted yet.'}
+              </p>
+            </div>
+          ) : (
+            displayed.map((g) => (
+              <div
+                key={g.id}
+                className={`flex flex-col sm:flex-row sm:items-start justify-between gap-3 border p-4 transition-all ${
+                  g.readByChair
+                    ? 'border-hairline/60 bg-charcoal/30 opacity-60 text-sage'
+                    : 'border-gold/50 bg-charcoal text-ivory shadow-[0_0_12px_rgba(212,175,55,0.06)]'
+                }`}
+              >
+                <div className="space-y-2 flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`font-mono text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 border ${
+                        g.readByChair
+                          ? 'border-hairline text-sage/70 bg-obsidian/40'
+                          : 'border-gold text-gold bg-gold/10'
+                      }`}
+                    >
+                      {g.readByChair ? 'READ' : '★ NEW / UNREAD'}
+                    </span>
+                    <span className="font-mono text-[11px] tabular text-sage">
+                      {fmtTime(g.timestamp)}
+                    </span>
+                  </div>
+                  <p className="font-mono text-sm leading-relaxed text-ivory whitespace-pre-wrap break-words">
+                    {g.message}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2 pt-2 sm:pt-0">
+                  <button
+                    onClick={() => actions.toggleGossipRead(g.id, !g.readByChair)}
+                    className={`btn !py-1 !px-2.5 text-[11px] flex items-center gap-1.5 ${
+                      g.readByChair
+                        ? 'text-sage hover:text-ivory border-hairline'
+                        : 'btn-gold'
+                    }`}
+                    title={g.readByChair ? 'Mark unread' : 'Mark as read'}
+                  >
+                    <Check size={12} />
+                    <span>{g.readByChair ? 'Mark Unread' : '✓ Mark Read'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => actions.deleteGossip(g.id)}
+                    className="btn btn-crimson !py-1 !px-2.5 text-[11px] flex items-center gap-1.5"
+                    title="Delete permanently"
+                  >
+                    <Trash2 size={12} />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
 /* ------------------------------ Page ------------------------------ */
 export default function Admin() {
   const { isChair, state, toast } = useStore();
@@ -1171,7 +1291,17 @@ export default function Admin() {
     state.trades.filter((t) => t.status === 'AWAITING_CHAIR' || t.status === 'PENDING').length +
     state.grainContracts.filter((g) => g.status === 'PENDING').length +
     state.directives.filter((d) => d.status === 'PENDING').length;
-  const badge = (id: Tab) => (id === 'motions' ? pendingMotions : id === 'trades' ? pendingTrades : id === 'timer' ? state.committeeState.gslRequests.length : 0);
+  const unreadGossips = (state.gossipBox || []).filter((g) => !g.readByChair).length;
+  const badge = (id: Tab) =>
+    id === 'motions'
+      ? pendingMotions
+      : id === 'trades'
+      ? pendingTrades
+      : id === 'timer'
+      ? state.committeeState.gslRequests.length
+      : id === 'gossip'
+      ? unreadGossips
+      : 0;
 
   return (
     <div>
@@ -1205,6 +1335,7 @@ export default function Admin() {
       {tab === 'trades' && <TradesTab />}
       {tab === 'crisis' && <SwanTab />}
       {tab === 'wiretap' && <WiretapTab />}
+      {tab === 'gossip' && <GossipTab />}
       {tab === 'security' && <SecurityTab />}
     </div>
   );
@@ -1220,5 +1351,6 @@ export {
   SwanTab as BigBullshitArea,
   SwanTab as BlackSwan,
   WiretapTab as Wiretap,
+  GossipTab as GossipBox,
   SecurityTab as SecurityPins,
 };
