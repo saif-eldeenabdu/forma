@@ -70,6 +70,11 @@ export function normalize(raw: unknown): RootState {
         }
       : null,
     cyberAttackActive: Boolean(cs.cyberAttackActive),
+    chairs: {
+      judy: { ...seed.committeeState.chairs!.judy, ...(cs.chairs?.judy ?? {}) },
+      saif: { ...seed.committeeState.chairs!.saif, ...(cs.chairs?.saif ?? {}) },
+    },
+    activeChairPowerUp: cs.activeChairPowerUp ?? null,
   };
 
   const currencies: Record<string, Currency> = {};

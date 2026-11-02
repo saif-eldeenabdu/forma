@@ -11,7 +11,7 @@ import { Field, PageHeader, Panel, fmtSecondsLabel } from '../components/ui';
 import { TimerPanel } from '../components/Timer';
 import { motionLine } from '../components/Overlays';
 
-type Tab = 'timer' | 'motions' | 'markets' | 'marketMaker' | 'news' | 'trades' | 'crisis' | 'wiretap' | 'gossip' | 'security';
+type Tab = 'timer' | 'motions' | 'markets' | 'marketMaker' | 'news' | 'trades' | 'crisis' | 'wiretap' | 'gossip' | 'dais' | 'security';
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'timer', label: 'Timers & GSL', icon: <Play size={13} /> },
   { id: 'motions', label: 'Motions', icon: <Gavel size={13} /> },
@@ -22,6 +22,7 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'crisis', label: 'Big Bullshit Area', icon: <Skull size={13} /> },
   { id: 'wiretap', label: 'Wiretap / Cyber', icon: <Radio size={13} /> },
   { id: 'gossip', label: 'Gossip Box', icon: <Sparkles size={13} /> },
+  { id: 'dais', label: 'Dais Protocols', icon: <ShieldCheck size={13} /> },
   { id: 'security', label: 'Security / PINs', icon: <ShieldCheck size={13} /> },
 ];
 
@@ -1278,6 +1279,53 @@ const GossipTab = memo(function GossipTab() {
   );
 });
 
+/* ------------------------------ Dais Protocols ------------------------------ */
+const DaisTab = memo(function DaisTab() {
+  const { state, actions } = useStore();
+  const [target, setTarget] = useState('Brazil');
+  const last = state.committeeState.activeChairPowerUp;
+  return (
+    <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+      <Panel title="Judy // NDB Governor Oversight">
+        <div className="space-y-3">
+          <Field label="Target delegation">
+            <select className="field" value={target} onChange={(e) => setTarget(e.target.value)} aria-label="Target delegation">
+              <optgroup label="FULL BRICS MEMBERS (11)">
+                {FULL_MEMBERS.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+              </optgroup>
+              <optgroup label="BRICS PARTNERS (11)">
+                {PARTNERS.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+              </optgroup>
+            </select>
+          </Field>
+          <button className="btn btn-gold w-full !py-3 font-mono text-xs uppercase tracking-wider" onClick={() => actions.daisLiquidityFacility(target)}>
+            [EXECUTE: LIQUIDITY FACILITY (+$2.5M)]
+          </button>
+          <button className="btn btn-crimson w-full !py-3 font-mono text-xs uppercase tracking-wider" onClick={() => actions.daisFiatPenalty(target)}>
+            [EXECUTE: FIAT PENALTY (-$1.0M)]
+          </button>
+        </div>
+      </Panel>
+      <Panel title="Saif // Market Operations">
+        <div className="space-y-3">
+          <p className="text-xs text-sage">Both protocols apply globally and require no target selection.</p>
+          <button className="btn btn-emerald w-full !py-3 font-mono text-xs uppercase tracking-wider" onClick={actions.daisMarginCall}>
+            [EXECUTE: SYSTEMIC MARGIN CALL]
+          </button>
+          <button className="btn btn-crimson w-full !py-3 font-mono text-xs uppercase tracking-wider" onClick={actions.daisSettlementShock}>
+            [EXECUTE: SETTLEMENT SHOCK]
+          </button>
+        </div>
+      </Panel>
+      {last && (
+        <p className="font-mono text-[11px] uppercase tracking-wider text-sage xl:col-span-2">
+          Last protocol: {last.chair.toUpperCase()} / {last.id.toUpperCase()} / {last.target} / {new Date(last.at).toLocaleTimeString()}
+        </p>
+      )}
+    </div>
+  );
+});
+
 /* ------------------------------ Page ------------------------------ */
 export default function Admin() {
   const { isChair, state, toast } = useStore();
@@ -1334,6 +1382,7 @@ export default function Admin() {
       {tab === 'crisis' && <SwanTab />}
       {tab === 'wiretap' && <WiretapTab />}
       {tab === 'gossip' && <GossipTab />}
+      {tab === 'dais' && <DaisTab />}
       {tab === 'security' && <SecurityTab />}
     </div>
   );

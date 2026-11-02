@@ -15,6 +15,7 @@ const NAV = [
   { to: '/comms', label: 'Comms', icon: MessageSquare },
   { to: '/gossip', label: 'Gossip Box', icon: Sparkles },
   { to: '/dossiers', label: 'Dossiers', icon: Landmark },
+  { to: '/dais', label: 'The Dais', icon: ScrollText },
   { to: '/briefing', label: 'Briefing', icon: BookOpen },
 ];
 

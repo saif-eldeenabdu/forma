@@ -2,6 +2,7 @@ import type { RootState } from './types';
 import { COUNTRY_NAMES, DEFAULT_DELEGATION_PINS } from '../data/countries';
 import { defaultStock } from '../data/grain';
 import { DEFAULT_TICKERS, defaultPortfolio } from '../data/exchange';
+import { CHAIR_PROFILES } from '../data/chairs';
 
 /** Exact initial RTDB structure from the master spec (plus Chair-engine nodes). */
 export function createSeed(now = Date.now()): RootState {
@@ -40,6 +41,7 @@ export function createSeed(now = Date.now()): RootState {
       suezTollCurrency: 'USD',
       assetFreeze: null,
       cyberAttackActive: false,
+      chairs: CHAIR_PROFILES,
     },
     currencies: {
       BRL: { name: 'Brazilian Real', rateToUSD: 5.15, change24h: 0.4, history: [5.25, 5.22, 5.19, 5.15] },

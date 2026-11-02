@@ -9,6 +9,7 @@ const Exchange = lazy(() => import('./pages/Exchange'));
 const Trade = lazy(() => import('./pages/Trade'));
 const Dossiers = lazy(() => import('./pages/Dossiers'));
 const Briefing = lazy(() => import('./pages/Briefing'));
+const Dais = lazy(() => import('./pages/Dais'));
 const Comms = lazy(() => import('./pages/Comms'));
 const Gossip = lazy(() => import('./pages/Gossip'));
 const Admin = lazy(() => import('./pages/Admin'));
@@ -30,6 +31,7 @@ export default function App() {
               <Route path="gossip" element={<Gossip />} />
               <Route path="gossip-box" element={<Gossip />} />
               <Route path="dossiers" element={<Dossiers />} />
+              <Route path="dais" element={<Dais />} />
               <Route path="briefing" element={<Briefing />} />
               <Route path="admin" element={<Admin />} />
               <Route path="chair" element={<Admin />} />

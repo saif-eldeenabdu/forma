@@ -110,6 +110,11 @@ export interface Actions {
   wireBailout(from: string, to: string, amount: number): void;
   injectBailout(country: string, amount: number): void;
   forceBankrupt(country: string): void;
+  // dais protocols
+  daisLiquidityFacility(target: string): void;
+  daisFiatPenalty(target: string): void;
+  daisMarginCall(): void;
+  daisSettlementShock(): void;
   // backchannel & cyber attack
   sendBackchannelMessage(msg: { from: string; to: string; text: string }): void;
   leakBackchannelMessage(id: string): void;
@@ -1041,6 +1046,67 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...news(`CRITICAL: Chair declared Sovereign Default on ${country}. Liquid reserves wiped to $0 (GGs).`),
         });
         showToast(`SOVEREIGN DEFAULT FORCED: ${country} reserves set to $0`);
+      },
+      daisLiquidityFacility(target) {
+        if (!target) return;
+        const st = S();
+        const pf = st.exchangeState?.portfolios?.[target] ?? defaultPortfolio();
+        const t = st.exchangeState.tickers.GOLD ?? DEFAULT_TICKERS.GOLD;
+        const newPrice = Math.max(1, Math.round(t.currentPrice * 1.12 * 100) / 100);
+        const baseline = t.history[0] || t.currentPrice;
+        write({
+          [`exchangeState/portfolios/${target}/cash`]: Math.round(pf.cash + 2_500_000),
+          'exchangeState/tickers/GOLD/currentPrice': newPrice,
+          'exchangeState/tickers/GOLD/change24h': Math.round(((newPrice - baseline) / baseline) * 1000) / 10,
+          'exchangeState/tickers/GOLD/history': [...(t.history || []), newPrice].slice(-14),
+          'committeeState/activeChairPowerUp': { chair: 'judy', id: 'liquidity', target, at: now() },
+          ...news(`NDB ACTION: ${target} awarded a $2,500,000 Gold-Backed Liquidity Facility. GOLD index surges.`),
+        });
+        showToast(`LIQUIDITY FACILITY EXECUTED: ${target}`);
+      },
+      daisFiatPenalty(target) {
+        if (!target) return;
+        const pf = S().exchangeState?.portfolios?.[target] ?? defaultPortfolio();
+        write({
+          [`exchangeState/portfolios/${target}/cash`]: Math.round(pf.cash - 1_000_000),
+          'committeeState/activeChairPowerUp': { chair: 'judy', id: 'penalty', target, at: now() },
+          ...news(`REGULATORY ACTION: ${target} fined -$1,000,000 for systemic US Dollar reliance.`),
+        });
+        showToast(`FIAT PENALTY EXECUTED: ${target}`);
+      },
+      daisMarginCall() {
+        const pfs = S().exchangeState.portfolios;
+        const names = Object.keys(pfs);
+        if (!names.length) return;
+        const richest = names.reduce((a, b) => (pfs[b].cash > pfs[a].cash ? b : a));
+        const seized = Math.floor(pfs[richest].cash * 0.2);
+        const defaulted = names.filter((n) => n !== richest && pfs[n].cash <= 0);
+        const u: Updates = {
+          [`exchangeState/portfolios/${richest}/cash`]: Math.round(pfs[richest].cash - seized),
+          'committeeState/activeChairPowerUp': { chair: 'saif', id: 'margin', target: richest, at: now() },
+          ...news(`MARKET REBALANCING: 20% of ${richest}'s reserves seized by BRICS Clear to stabilize defaulting nations.`),
+        };
+        if (defaulted.length) {
+          const share = Math.floor(seized / defaulted.length);
+          for (const n of defaulted) u[`exchangeState/portfolios/${n}/cash`] = share;
+        }
+        write(u);
+        showToast(`MARGIN CALL EXECUTED: ${richest}`);
+      },
+      daisSettlementShock() {
+        const st = S();
+        const t = st.exchangeState.tickers.UST ?? DEFAULT_TICKERS.UST;
+        const newPrice = Math.max(1, Math.round(t.currentPrice * 0.85 * 100) / 100);
+        const baseline = t.history[0] || t.currentPrice;
+        write({
+          'exchangeState/tickers/UST/currentPrice': newPrice,
+          'exchangeState/tickers/UST/change24h': Math.round(((newPrice - baseline) / baseline) * 1000) / 10,
+          'exchangeState/tickers/UST/history': [...(t.history || []), newPrice].slice(-14),
+          'committeeState/bricsPayAdoption': clamp(Math.round((st.committeeState.bricsPayAdoption + 10) * 10) / 10, 0, 100),
+          'committeeState/activeChairPowerUp': { chair: 'saif', id: 'shock', target: 'UST', at: now() },
+          ...news('GLOBAL SHOCK: Cross-border settlement override deployed. US Treasuries plummet as BRICS Pay adoption spikes.'),
+        });
+        showToast('SETTLEMENT SHOCK EXECUTED');
       },
       sendBackchannelMessage(msg) {
         const { from, to, text } = msg;

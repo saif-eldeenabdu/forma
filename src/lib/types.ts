@@ -71,6 +71,21 @@ export interface CommitteeState {
   suezTollCurrency: SuezCurrency;
   assetFreeze: AssetFreeze | null;
   cyberAttackActive?: boolean;
+  chairs?: Record<string, ChairProfile>;
+  activeChairPowerUp?: { chair: string; id: string; target: string; at: number } | null;
+}
+
+export interface ChairProfile {
+  name: string;
+  title: string;
+  photoUrl: string;
+  bio: string;
+  passiveName: string;
+  passiveDesc: string;
+  powerUp1Name: string;
+  powerUp1Desc: string;
+  powerUp2Name: string;
+  powerUp2Desc: string;
 }
 
 export interface Currency {
