@@ -70,7 +70,7 @@ export const TAB_HELP_CONTENT: Record<TabKey, TabHelpData> = {
         title: 'Bidding to Speak (GSL Auction)',
         body: (
           <p>
-            Instead of raising your placard for free to join the General Speakers' List, you bid cash from your $10,000,000 reserves. Higher bids move you to the top of the speaking line!
+            Instead of raising your placard for free to join the General Speakers' List, you bid cash from your $10,000,000 reserves. Higher bids move you to the top of the speaking line.
           </p>
         ),
       },
@@ -122,14 +122,14 @@ export const TAB_HELP_CONTENT: Record<TabKey, TabHelpData> = {
           <ul className="space-y-1.5 text-xs text-ivory/85">
             <li><strong className="text-emerald font-mono">[BUY]:</strong> Click this if you think the item's price will go <strong className="text-emerald">UP</strong>.</li>
             <li><strong className="text-gold font-mono">[SELL]:</strong> Click this to sell items you own and turn them back into cash.</li>
-            <li><strong className="text-crimson font-mono">[SHORT]:</strong> Click this to bet that an item will <strong className="text-crimson">CRASH</strong>. <em>(Tip: Short UST right before your bloc announces a plan to ditch the US Dollar to make easy millions!)</em></li>
+            <li><strong className="text-crimson font-mono">[SHORT]:</strong> Click this to bet that an item will <strong className="text-crimson">CRASH</strong>. (Tip: Short <code className="font-mono text-crimson">UST</code> right before your bloc announces a plan to ditch the US Dollar to make easy millions.)</li>
           </ul>
         ),
       },
     ],
   },
   trade: {
-    kicker: 'TRADE // SETTLEMENT GUIDE',
+    kicker: 'TRADE & BARTER // SETTLEMENT GUIDE',
     title: 'How Country-to-Country Trading Works',
     sections: [
       {
@@ -154,7 +154,7 @@ export const TAB_HELP_CONTENT: Record<TabKey, TabHelpData> = {
         title: 'Grain Exchange',
         body: (
           <p>
-            Russia (Wheat), Brazil (Soybeans), and India (Rice) control the food supply. Buy grain using <strong className="text-emerald">BRICS Pay</strong> for a 0% fee (using US Dollars costs an extra 8% penalty!).
+            Russia (Wheat), Brazil (Soybeans), and India (Rice) control the food supply. Buy grain using <strong className="text-emerald">BRICS Pay</strong> for a 0% fee (using US Dollars costs an extra 8% penalty).
           </p>
         ),
       },
@@ -162,7 +162,7 @@ export const TAB_HELP_CONTENT: Record<TabKey, TabHelpData> = {
         title: 'Wire Emergency Bailout',
         body: (
           <p>
-            Send cash to an ally who went bankrupt (<strong className="text-crimson">$0 / GGs</strong>) to bring them back into the game.
+            Send cash to an ally who went bankrupt (<code className="font-mono text-crimson">$0</code>) to bring them back into the game.
           </p>
         ),
       },
@@ -184,7 +184,7 @@ export const TAB_HELP_CONTENT: Record<TabKey, TabHelpData> = {
         title: 'Leak to Press (Betrayal Button)',
         body: (
           <p>
-            See the red <strong className="text-crimson font-mono">[LEAK TO PRESS]</strong> button on messages people send you? Clicking it anonymously exposes their message on the big projector screen!
+            See the red <strong className="text-crimson font-mono">[LEAK TO PRESS]</strong> button on messages people send you? Clicking it anonymously exposes their message on the big projector screen.
           </p>
         ),
       },
@@ -293,7 +293,7 @@ export const TabHelpButton = memo(function TabHelpButton({ tabKey }: { tabKey: T
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 border border-gold/60 bg-gold/10 px-2.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-gold hover:bg-gold hover:text-obsidian transition-colors shrink-0"
+        className="group flex items-center gap-1.5 border border-gold/60 bg-gold/10 px-2.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-gold hover:bg-gold hover:text-obsidian transition-colors shrink-0"
         title="Open Guide for this Tab"
       >
         <HelpCircle size={12} className="text-gold group-hover:text-obsidian" />

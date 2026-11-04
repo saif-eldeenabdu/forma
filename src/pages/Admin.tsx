@@ -990,7 +990,7 @@ const MarketMakerTab = memo(function MarketMakerTab() {
       {/* Sovereign Solvency & Emergency Bailout Desk */}
       <Panel title="Sovereign Solvency & Bailout Desk // Monopoly Bankruptcy Engine">
         <p className="text-xs text-sage mb-3">
-          Manage liquid sovereign reserves for all 22 delegations. Inject central-bank liquidity ($2,000,000) to stabilize an economy, or force a Sovereign Default (GGs) wiping their cash reserves to $0.
+          Manage liquid sovereign reserves for all 22 delegations. Inject central-bank liquidity ($2,000,000) to stabilize an economy, or force a Sovereign Default (BANKRUPT) wiping their cash reserves to $0.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {COUNTRIES.map((c) => {
@@ -1017,7 +1017,7 @@ const MarketMakerTab = memo(function MarketMakerTab() {
                         : 'border-emerald/40 text-emerald'
                     }`}
                   >
-                    {bankrupt ? '💀 DEFAULT (GGs)' : 'SOLVENT'}
+                    {bankrupt ? 'BANKRUPT' : 'SOLVENT'}
                   </span>
                 </div>
 
@@ -1039,7 +1039,7 @@ const MarketMakerTab = memo(function MarketMakerTab() {
                     onClick={() => actions.forceBankrupt(c.name)}
                     className="btn btn-crimson !py-1 !px-1 text-[10px] uppercase font-bold"
                   >
-                    Force $0 (GGs)
+                    Force $0 (Bankrupt)
                   </button>
                 </div>
               </div>

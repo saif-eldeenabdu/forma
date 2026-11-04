@@ -295,7 +295,7 @@ export default function Comms() {
             <div className="border-t border-hairline p-3 bg-charcoal">
               {bankrupt ? (
                 <div className="border border-crimson bg-crimson/20 p-3 text-center text-xs text-crimson font-bold">
-                  💀 SOVEREIGN DEFAULT (GGs) // Diplomatic communications locked until treasury is bailed out.
+                  SOVEREIGN DEFAULT (BANKRUPT) // Diplomatic communications locked until treasury is bailed out.
                 </div>
               ) : !me ? (
                 <div className="border border-gold/40 bg-gold/10 p-3 text-center text-xs text-gold">

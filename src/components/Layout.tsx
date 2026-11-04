@@ -1,23 +1,67 @@
-import { useState, type FormEvent } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useState, type FormEvent } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Activity, BookOpen, Globe2, Landmark, Lock, MessageSquare, Repeat, ScrollText, Sparkles, Volume2, VolumeX, X, Gavel, TrendingUp } from 'lucide-react';
+import {
+  Activity,
+  BookOpen,
+  Gavel,
+  Globe2,
+  Landmark,
+  Lock,
+  Menu,
+  MessageSquare,
+  Repeat,
+  ScrollText,
+  ShieldAlert,
+  Sparkles,
+  TrendingUp,
+  Volume2,
+  VolumeX,
+  X,
+} from 'lucide-react';
 import { useNow, useStore } from '../lib/store';
 import { FULL_MEMBERS, PARTNERS } from '../data/countries';
 import { isMuted, setMuted } from '../lib/audio';
 import { CrisisOverlay, MotionFlash, ActiveMotionBanner } from './Overlays';
 
-const NAV = [
-  { to: '/', label: 'Terminal', icon: Activity, end: true },
-  { to: '/floor', label: 'Floor', icon: Gavel },
-  { to: '/exchange', label: 'Exchange', icon: TrendingUp },
-  { to: '/trade', label: 'Trade', icon: Repeat },
-  { to: '/comms', label: 'Comms', icon: MessageSquare },
-  { to: '/gossip', label: 'Gossip Box', icon: Sparkles },
-  { to: '/dossiers', label: 'Dossiers', icon: Landmark },
-  { to: '/dais', label: 'The Dais', icon: ScrollText },
-  { to: '/briefing', label: 'Guide // How to Play', icon: BookOpen },
+interface NavItem {
+  to: string;
+  aliases?: string[];
+  label: string;
+  icon: typeof Activity;
+  end?: boolean;
+}
+
+const NAV: NavItem[] = [
+  { to: '/', label: 'TERMINAL', icon: Activity, end: true },
+  { to: '/floor', label: 'FLOOR', icon: Gavel },
+  { to: '/exchange', label: 'EXCHANGE', icon: TrendingUp },
+  { to: '/trade', label: 'TRADE & BARTER', icon: Repeat },
+  { to: '/comms', label: 'COMMS', icon: MessageSquare },
+  { to: '/dossiers', label: 'DOSSIERS', icon: Landmark },
+  { to: '/dais', label: 'THE DAIS', icon: ScrollText },
+  { to: '/gossip', aliases: ['/gossip-box'], label: 'GOSSIP BOX', icon: Sparkles },
+  { to: '/guide', aliases: ['/briefing'], label: 'GUIDE', icon: BookOpen },
 ];
+
+function resolveActiveLabel(pathname: string): string {
+  if (pathname === '/admin' || pathname === '/chair') return 'CHAIR CONTROL';
+  for (const item of NAV) {
+    if (item.end ? pathname === item.to : pathname.startsWith(item.to)) {
+      return item.label;
+    }
+    if (item.aliases?.some((a) => pathname.startsWith(a))) {
+      return item.label;
+    }
+  }
+  return 'TERMINAL';
+}
+
+function isNavItemActive(item: NavItem, pathname: string): boolean {
+  if (item.end) return pathname === item.to;
+  if (pathname.startsWith(item.to)) return true;
+  return !!item.aliases?.some((a) => pathname.startsWith(a));
+}
 
 function Ticker({ items, label, tone = 'gold', speed = 14 }: { items: string[]; label: string; tone?: 'gold' | 'crimson'; speed?: number }) {
   const text = items.length ? items : ['NO ITEMS'];
@@ -205,7 +249,7 @@ function Clock() {
   const d = new Date(t);
   const p = (n: number) => String(n).padStart(2, '0');
   return (
-    <span className="tabular text-[11px] text-sage">
+    <span className="hidden xl:inline tabular text-[11px] text-sage">
       UTC {p(d.getUTCHours())}:{p(d.getUTCMinutes())}:{p(d.getUTCSeconds())}
     </span>
   );
@@ -214,110 +258,135 @@ function Clock() {
 export default function Layout() {
   const { state, me, reserves, bankrupt, releaseDelegation, isChair, lock, toast: stateToast } = useStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [pinOpen, setPinOpen] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
+
   const cs = state.committeeState;
   const incomingTrades = me ? state.trades.filter((t) => t.to === me && t.status === 'PENDING_COUNTERPARTY').length : 0;
   const unreadComms = me
     ? (state.backchannelMessages || []).filter((m) => m.from !== me && (m.to === me || m.to === 'GLOBAL')).length
     : 0;
+  const totalUnread = incomingTrades + unreadComms;
+  const activeTabLabel = resolveActiveLabel(location.pathname);
+
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
+
   const ledger = state.trades
     .filter((t) => t.kind === 'BARTER' && t.status === 'APPROVED')
     .map((t, i) => `LEDGER #${String(i + 1).padStart(3, '0')} — ${t.from} ⇄ ${t.to}: ${t.offer} FOR ${t.request}`);
 
   return (
-    <div className="flex min-h-screen flex-col pb-14 md:pb-0">
-      <header className="sticky top-0 z-30 border-b border-hairline bg-obsidian/95">
-        <div className="mx-auto flex max-w-[1920px] items-center gap-4 px-3 py-2 md:px-5">
-          <button onClick={() => navigate('/')} className="flex items-center gap-3 text-left" aria-label="Home">
-            <span className="grid h-9 w-9 place-items-center border border-gold text-gold">
-              <Globe2 size={18} strokeWidth={1.5} />
-            </span>
-            <span>
-              <span className="block font-serif text-xl leading-none tracking-wide text-ivory">BRICS-NET</span>
-              <span className="label mt-1 block !text-[9px]">Sovereign Terminal // 2026</span>
-            </span>
-          </button>
-
-          <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label="Primary">
-            {NAV.map((n) => (
-              <NavLink
-                key={n.to}
-                to={n.to}
-                end={n.end}
-                className={({ isActive }) =>
-                  `relative flex items-center px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] ${isActive ? 'text-gold' : 'text-sage hover:text-ivory'}`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <span>{n.label}</span>
-                    {n.to === '/trade' && incomingTrades > 0 && (
-                      <span className="ml-1.5 rounded-full bg-crimson px-1.5 py-0.2 font-mono text-[9px] font-bold text-ivory animate-pulse">
-                        {incomingTrades}
-                      </span>
-                    )}
-                    {n.to === '/comms' && unreadComms > 0 && (
-                      <span className="ml-1.5 rounded-full bg-crimson px-1.5 py-0.2 font-mono text-[9px] font-bold text-ivory animate-pulse">
-                        {unreadComms}
-                      </span>
-                    )}
-                    {isActive && <motion.span layoutId="nav-underline" className="absolute inset-x-2 -bottom-[9px] h-px bg-gold" />}
-                  </>
-                )}
-              </NavLink>
-            ))}
-            {isChair && (
-              <NavLink
-                to="/admin"
-                className={({ isActive }) =>
-                  `relative px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] ${isActive ? 'text-crimson' : 'text-crimson/70 hover:text-crimson'}`
-                }
-              >
-                Chair
-              </NavLink>
-            )}
-          </nav>
-
-          <div className="ml-auto flex items-center gap-4">
-            <div className="hidden items-center gap-2 lg:flex">
-              {me ? (
-                <div className="flex items-center gap-2 border border-gold/40 bg-charcoal px-3 py-1 font-mono text-[11px]">
-                  <Lock size={12} className="text-gold" />
-                  <span className="font-bold uppercase tracking-wider text-ivory">{me}</span>
-                  <span
-                    className={`ml-1 border px-2 py-0.5 tabular font-mono text-[10px] font-bold ${
-                      bankrupt
-                        ? 'border-crimson bg-crimson/20 text-crimson animate-pulse'
-                        : 'border-emerald/40 bg-emerald/10 text-emerald'
-                    }`}
-                  >
-                    {bankrupt ? '💀 $0 [GGs]' : `RESERVES: $${Math.round(reserves).toLocaleString()}`}
-                  </span>
-                  <button
-                    onClick={releaseDelegation}
-                    className="ml-2 text-[10px] text-sage underline hover:text-crimson"
-                    title="Clear authentication session and return to Viewer mode"
-                  >
-                    Log Out / Switch
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setClaimOpen(true)}
-                  className="btn btn-gold !py-1 !text-[11px]"
-                >
-                  <Lock size={12} /> Claim Delegation
-                </button>
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-30 border-b border-hairline bg-obsidian/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1920px] items-center justify-between gap-2 px-3 py-2 md:px-5">
+          {/* Left: Brand Title & Compact Hamburger Menu Button */}
+          <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open navigation menu"
+              aria-expanded={drawerOpen}
+              className="relative inline-flex items-center gap-1.5 border border-gold/60 bg-[#111614] px-2.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-gold transition-colors hover:bg-gold hover:text-obsidian"
+            >
+              <Menu size={13} strokeWidth={2} />
+              <span>[ ☰ MENU ]</span>
+              {totalUnread > 0 && (
+                <span className="ml-0.5 rounded-full bg-crimson px-1.5 py-0.2 font-mono text-[9px] font-bold text-ivory animate-pulse">
+                  {totalUnread}
+                </span>
               )}
-            </div>
+            </button>
+
+            <button onClick={() => navigate('/')} className="flex items-center gap-2.5 text-left" aria-label="Home">
+              <span className="hidden sm:grid h-8 w-8 place-items-center border border-gold text-gold">
+                <Globe2 size={16} strokeWidth={1.5} />
+              </span>
+              <span>
+                <span className="block font-serif text-lg sm:text-xl leading-none tracking-wide text-ivory">BRICS-NET</span>
+                <span className="label mt-0.5 hidden sm:block !text-[9px]">Sovereign Terminal // 2026</span>
+              </span>
+            </button>
+          </div>
+
+          {/* Right: Compact Active Tab Badge, Live RESERVES, Locked DELEGATION PIN Button, and CHAIR ACCESS */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap justify-end">
+            {/* Active Tab Badge */}
+            <span className="hidden md:inline-flex items-center gap-1.5 border border-hairline bg-[#111614] px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-gold">
+              <span className="h-1.5 w-1.5 rounded-full bg-gold" />
+              {activeTabLabel}
+            </span>
+
+            {/* Live RESERVES */}
+            {me && (
+              <span
+                className={`inline-flex items-center border px-2 sm:px-2.5 py-1 tabular font-mono text-[10px] font-bold uppercase tracking-wider ${
+                  bankrupt
+                    ? 'border-crimson bg-crimson/20 text-crimson animate-pulse'
+                    : 'border-emerald/40 bg-emerald/10 text-emerald'
+                }`}
+              >
+                {bankrupt ? 'BANKRUPT ($0)' : `RESERVES: $${Math.round(reserves).toLocaleString()}`}
+              </span>
+            )}
+
+            {/* Locked DELEGATION PIN Button / Identity */}
+            {me ? (
+              <div className="inline-flex items-center gap-1.5 border border-gold/40 bg-[#111614] px-2.5 py-1 font-mono text-[10px] sm:text-[11px]">
+                <Lock size={11} className="text-gold shrink-0" />
+                <span className="font-bold uppercase tracking-wider text-ivory truncate max-w-[90px] sm:max-w-[130px]">{me}</span>
+                <button
+                  type="button"
+                  onClick={releaseDelegation}
+                  className="ml-1 text-[10px] text-sage underline hover:text-crimson"
+                  title="Clear authentication session and return to Viewer mode"
+                >
+                  Out
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setClaimOpen(true)}
+                className="btn btn-gold !py-1 !px-2.5 !text-[10px] sm:!text-[11px]"
+              >
+                <Lock size={11} /> Delegation
+              </button>
+            )}
+
+            {/* CHAIR ACCESS */}
+            <button
+              type="button"
+              onClick={() => (isChair ? navigate('/admin') : setPinOpen(true))}
+              className={`btn !py-1 !px-2.5 !text-[10px] sm:!text-[11px] ${
+                isChair ? '!border-crimson/70 !text-crimson hover:!bg-crimson/10' : ''
+              }`}
+            >
+              <Lock size={11} />
+              <span className="hidden sm:inline">Chair Access</span>
+              <span className="sm:hidden">Chair</span>
+            </button>
+
             <Clock />
           </div>
         </div>
+
         {me && bankrupt && (
           <div className="border-y-2 border-crimson bg-crimson/30 px-4 py-2 text-center font-mono text-xs font-black uppercase tracking-[0.2em] text-ivory shadow-[0_0_20px_rgba(239,68,68,0.5)] animate-pulse">
-            💀 SOVEREIGN DEFAULT: YOUR TREASURY IS EMPTY (GGs). YOU CANNOT BID FOR SPEECHES, SUBMIT MOTIONS, OR TRADE UNTIL BAILED OUT 💀
+            ▲ SOVEREIGN DEFAULT (BANKRUPT): YOUR TREASURY IS EMPTY ($0). YOU CANNOT BID FOR SPEECHES, SUBMIT MOTIONS, OR TRADE UNTIL BAILED OUT ▲
           </div>
         )}
         {cs.currentMode !== 'NORMAL' && cs.activeCrisisBanner && (
@@ -328,6 +397,134 @@ export default function Layout() {
         <Ticker items={state.newsTicker} label="Wire" />
         {cs.currentMode === 'BARTER_CRISIS' && <Ticker items={ledger.length ? ledger : ['PHYSICAL BARTER LEDGER OPEN — NO TRADES RECORDED YET']} label="Barter Ledger" tone="crimson" speed={10} />}
       </header>
+
+      {/* Smooth Slide-Out Hamburger Navigation Drawer */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <div className="fixed inset-0 z-[70] flex">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={() => setDrawerOpen(false)}
+              className="fixed inset-0 bg-[#0A0D0C]/80 backdrop-blur-xs"
+              aria-hidden="true"
+            />
+
+            {/* Drawer Panel */}
+            <motion.aside
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation Menu"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'tween', duration: 0.22, ease: 'easeOut' }}
+              className="relative z-10 flex h-full w-72 max-w-[85vw] flex-col border-r border-[#26302B] bg-[#111614] shadow-[8px_0_32px_rgba(0,0,0,0.75)]"
+            >
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between border-b border-[#26302B] bg-[#0A0D0C] px-4 py-3.5">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid h-7 w-7 place-items-center border border-gold text-gold">
+                    <Globe2 size={14} strokeWidth={1.5} />
+                  </span>
+                  <div>
+                    <span className="block font-serif text-base leading-none tracking-wide text-ivory">BRICS-NET</span>
+                    <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-gold">Navigation Directory</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDrawerOpen(false)}
+                  className="border border-[#26302B] bg-[#111614] p-1.5 text-sage transition-colors hover:border-gold hover:text-gold"
+                  aria-label="Close navigation menu"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              {/* Vertical Navigation Tabs */}
+              <nav className="flex-1 overflow-y-auto py-2" aria-label="Primary Navigation">
+                <ul className="space-y-0.5 px-2">
+                  {NAV.map((item) => {
+                    const Icon = item.icon;
+                    const active = isNavItemActive(item, location.pathname);
+                    return (
+                      <li key={item.to}>
+                        <NavLink
+                          to={item.to}
+                          end={item.end}
+                          onClick={() => setDrawerOpen(false)}
+                          className={`group relative flex items-center justify-between border px-3 py-2.5 font-mono text-xs uppercase tracking-[0.14em] transition-colors ${
+                            active
+                              ? 'border-[#D4AF37]/50 bg-[#D4AF37]/10 font-bold text-[#D4AF37]'
+                              : 'border-transparent text-ivory/80 hover:border-[#26302B] hover:bg-[#161C19] hover:text-ivory'
+                          }`}
+                        >
+                          {active && <span className="absolute inset-y-0 left-0 w-1 bg-[#D4AF37]" />}
+                          <span className="flex items-center gap-3">
+                            <Icon size={15} className={active ? 'text-[#D4AF37]' : 'text-sage group-hover:text-[#D4AF37]'} />
+                            <span>{item.label}</span>
+                          </span>
+                          {item.to === '/trade' && incomingTrades > 0 && (
+                            <span className="rounded-full bg-crimson px-2 py-0.5 font-mono text-[10px] font-bold text-ivory animate-pulse">
+                              {incomingTrades}
+                            </span>
+                          )}
+                          {item.to === '/comms' && unreadComms > 0 && (
+                            <span className="rounded-full bg-crimson px-2 py-0.5 font-mono text-[10px] font-bold text-ivory animate-pulse">
+                              {unreadComms}
+                            </span>
+                          )}
+                        </NavLink>
+                      </li>
+                    );
+                  })}
+
+                  {isChair && (
+                    <li className="pt-2 mt-2 border-t border-[#26302B]">
+                      <NavLink
+                        to="/admin"
+                        onClick={() => setDrawerOpen(false)}
+                        className={({ isActive }) =>
+                          `relative flex items-center justify-between border px-3 py-2.5 font-mono text-xs uppercase tracking-[0.14em] transition-colors ${
+                            isActive
+                              ? 'border-crimson/60 bg-crimson/15 font-bold text-crimson'
+                              : 'border-transparent text-crimson/80 hover:border-crimson/40 hover:bg-crimson/10 hover:text-crimson'
+                          }`
+                        }
+                      >
+                        <span className="flex items-center gap-3">
+                          <ShieldAlert size={15} />
+                          <span>CHAIR CONTROL</span>
+                        </span>
+                      </NavLink>
+                    </li>
+                  )}
+                </ul>
+              </nav>
+
+              {/* Drawer Footer Status */}
+              <div className="border-t border-[#26302B] bg-[#0A0D0C] px-4 py-3 space-y-2">
+                {me ? (
+                  <div className="flex items-center justify-between font-mono text-[10px]">
+                    <span className="uppercase tracking-wider text-sage truncate">{me}</span>
+                    <span className={`tabular font-bold ${bankrupt ? 'text-crimson' : 'text-emerald'}`}>
+                      {bankrupt ? 'BANKRUPT ($0)' : `$${Math.round(reserves).toLocaleString()}`}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="font-mono text-[10px] uppercase tracking-wider text-sage">
+                    Viewer Mode // Unclaimed
+                  </div>
+                )}
+              </div>
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {stateToast && (
@@ -359,22 +556,6 @@ export default function Layout() {
             <span className="label">BRICS Currency &amp; De-Dollarization Committee // 2026 Framework // Simulation — figures approximate</span>
           </div>
           <div className="flex items-center gap-2">
-            {me ? (
-              <div className="flex items-center gap-1.5 border border-gold/40 bg-charcoal px-2 py-1 font-mono text-[10px] lg:hidden">
-                <Lock size={11} className="text-gold" />
-                <span className="truncate max-w-[80px] font-bold text-ivory">{me}</span>
-                <span className={`tabular text-[9px] font-bold ${bankrupt ? 'text-crimson animate-pulse' : 'text-emerald'}`}>
-                  {bankrupt ? '💀 GGs' : `$${(reserves / 1_000_000).toFixed(1)}M`}
-                </span>
-                <button onClick={releaseDelegation} className="ml-1 text-[9px] text-crimson underline">
-                  Out
-                </button>
-              </div>
-            ) : (
-              <button onClick={() => setClaimOpen(true)} className="btn !py-1 !text-[10px] lg:hidden">
-                <Lock size={11} /> Claim
-              </button>
-            )}
             <button
               className="btn !px-2"
               onClick={() => {
@@ -396,35 +577,6 @@ export default function Layout() {
           </div>
         </div>
       </footer>
-
-      {/* mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-8 border-t border-hairline bg-obsidian md:hidden" aria-label="Mobile">
-        {NAV.map((n) => (
-          <NavLink
-            key={n.to}
-            to={n.to}
-            end={n.end}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-1 py-2 font-mono text-[8px] uppercase tracking-wider ${isActive ? 'text-gold' : 'text-sage'}`
-            }
-          >
-            <div className="relative">
-              <n.icon size={15} strokeWidth={1.5} />
-              {n.to === '/trade' && incomingTrades > 0 && (
-                <span className="absolute -top-1 -right-2 rounded-full bg-crimson px-1 text-[8px] font-bold text-ivory animate-pulse">
-                  {incomingTrades}
-                </span>
-              )}
-              {n.to === '/comms' && unreadComms > 0 && (
-                <span className="absolute -top-1 -right-2 rounded-full bg-crimson px-1 text-[8px] font-bold text-ivory animate-pulse">
-                  {unreadComms}
-                </span>
-              )}
-            </div>
-            <span className="truncate max-w-[45px]">{n.label}</span>
-          </NavLink>
-        ))}
-      </nav>
 
       <AnimatePresence>
         {pinOpen && <PinModal onClose={() => setPinOpen(false)} />}

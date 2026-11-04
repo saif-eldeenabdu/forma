@@ -147,7 +147,7 @@ function TradeForm({ kind }: { kind: TradeKind }) {
         <input className="field" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Delivery terms, port of exchange, etc." disabled={bankrupt} />
       </Field>
       <button className="btn btn-gold w-full" disabled={!valid || bankrupt} type="submit">
-        <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (GGs) // Proposals locked' : `Submit ${kind === 'BARTER' ? 'Barter' : 'Swap'} Proposal`}
+        <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (BANKRUPT) // Proposals locked' : `Submit ${kind === 'BARTER' ? 'Barter' : 'Swap'} Proposal`}
       </button>
       {sent && (
         <p role="status" className="flex items-center gap-2 border border-emerald/50 bg-emerald/10 px-3 py-2 font-mono text-[11px] uppercase text-emerald">
@@ -283,7 +283,7 @@ function GrainExchange({ locked }: { locked: boolean }) {
             )}
           </fieldset>
           <button className="btn btn-gold w-full" type="submit" disabled={!valid || bankrupt}>
-            <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (GGs) // Contracts locked' : 'Submit Agri-Commodity Swap Request'}
+            <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (BANKRUPT) // Contracts locked' : 'Submit Agri-Commodity Swap Request'}
           </button>
           {qty > stock && <p className="tabular text-[11px] text-crimson">Quantity exceeds exporter stockpile.</p>}
           {sent && (
@@ -436,7 +436,7 @@ function EmergencyBailoutForm() {
           type="submit"
           disabled={!valid || bankrupt}
         >
-          <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (GGs) // Treasury empty' : 'Wire Emergency Bailout Funds'}
+          <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (BANKRUPT) // Treasury empty' : 'Wire Emergency Bailout Funds'}
         </button>
 
         {sent && (

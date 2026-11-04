@@ -12,11 +12,11 @@ interface SubTab {
 }
 
 const SUB_TABS: SubTab[] = [
-  { id: 'topic', label: '1. The Topic (Plain English)', icon: BookOpen },
-  { id: 'basics', label: '2. Website & Money Basics', icon: DollarSign },
-  { id: 'trading', label: '3. Stock Market & Trading', icon: TrendingUp },
-  { id: 'directives', label: '4. Directives (No Resolutions!)', icon: FileText },
-  { id: 'rules', label: '5. MUN Rules for Beginners', icon: Gavel },
+  { id: 'topic', label: '1. THE TOPIC', icon: BookOpen },
+  { id: 'basics', label: '2. WEBSITE & MONEY BASICS', icon: DollarSign },
+  { id: 'trading', label: '3. STOCK MARKET & TRADING', icon: TrendingUp },
+  { id: 'directives', label: '4. DIRECTIVES', icon: FileText },
+  { id: 'rules', label: '5. MUN RULES FOR BEGINNERS', icon: Gavel },
 ];
 
 export default function Briefing() {
@@ -24,7 +24,7 @@ export default function Briefing() {
 
   return (
     <div className="space-y-4">
-      <PageHeader kicker="Delegate Manual // Operational Playbook" title="Guide // How to Play">
+      <PageHeader kicker="Delegate Manual // Operational Playbook" title="Guide">
         <span className="font-mono text-xs uppercase text-gold tracking-wider border border-gold/40 bg-gold/10 px-3 py-1">
           Beginner-Friendly Field Guide
         </span>
@@ -41,7 +41,7 @@ export default function Briefing() {
               role="tab"
               aria-selected={isActive}
               onClick={() => setActiveTab(t.id)}
-              className={`flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-3 font-mono text-xs uppercase tracking-[0.12em] transition-all relative ${
+              className={`flex-1 min-w-[180px] flex items-center justify-center gap-2 px-4 py-3 font-mono text-xs uppercase tracking-[0.12em] transition-all relative ${
                 isActive
                   ? 'bg-gold text-obsidian font-bold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
                   : 'bg-charcoal text-sage hover:text-ivory hover:bg-charcoal/80'
@@ -81,12 +81,12 @@ export default function Briefing() {
   );
 }
 
-/* ----------------- SUB-TAB 1: 1. THE TOPIC (PLAIN ENGLISH) ----------------- */
+/* ----------------- SUB-TAB 1: 1. THE TOPIC ----------------- */
 const TopicTab = memo(function TopicTab() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Card 1 */}
-      <Panel title="Card 1 // What is the Problem with the US Dollar?" tone="crimson" bodyClass="p-4 sm:p-5 space-y-3">
+      <Panel title="Card 1: What is the Problem with the US Dollar?" tone="crimson" bodyClass="p-4 sm:p-5 space-y-3">
         <div className="flex items-center gap-2 text-crimson">
           <AlertTriangle size={16} />
           <span className="font-mono text-xs font-bold uppercase tracking-wider">The Weaponized Dollar</span>
@@ -108,7 +108,7 @@ const TopicTab = memo(function TopicTab() {
       </Panel>
 
       {/* Card 2 */}
-      <Panel title="Card 2 // What is Our Goal in BRICS?" tone="gold" bodyClass="p-4 sm:p-5 space-y-3">
+      <Panel title="Card 2: What is Our Goal in BRICS?" tone="gold" bodyClass="p-4 sm:p-5 space-y-3">
         <div className="flex items-center gap-2 text-gold">
           <CheckCircle2 size={16} />
           <span className="font-mono text-xs font-bold uppercase tracking-wider">De-Dollarization Mission</span>
@@ -130,7 +130,7 @@ const TopicTab = memo(function TopicTab() {
       </Panel>
 
       {/* Card 3 */}
-      <Panel title="Card 3 // The 3 Solutions You Can Argue For" bodyClass="p-4 sm:p-5 space-y-3">
+      <Panel title="Card 3: The 3 Solutions You Can Argue For" bodyClass="p-4 sm:p-5 space-y-3">
         <div className="flex items-center gap-2 text-emerald">
           <ShieldAlert size={16} />
           <span className="font-mono text-xs font-bold uppercase tracking-wider">Key Strategic Solutions</span>
@@ -165,7 +165,7 @@ const BasicsTab = memo(function BasicsTab() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Card 1 */}
-      <Panel title="Card 1 // Your 4-Digit PIN & $10,000,000 Reserves" tone="gold" bodyClass="p-4 sm:p-5 space-y-3">
+      <Panel title="Card 1: Your 4-Digit PIN & $10,000,000 Reserves" tone="gold" bodyClass="p-4 sm:p-5 space-y-3">
         <div className="flex items-center gap-2 text-gold">
           <DollarSign size={16} />
           <span className="font-mono text-xs font-bold uppercase tracking-wider">Authentication & Capital</span>
@@ -187,29 +187,29 @@ const BasicsTab = memo(function BasicsTab() {
       </Panel>
 
       {/* Card 2 */}
-      <Panel title='Card 2 // Going Bankrupt ("GGs" Rule)' tone="crimson" bodyClass="p-4 sm:p-5 space-y-3">
+      <Panel title="Card 2: Going Bankrupt" tone="crimson" bodyClass="p-4 sm:p-5 space-y-3">
         <div className="flex items-center gap-2 text-crimson">
           <AlertTriangle size={16} />
-          <span className="font-mono text-xs font-bold uppercase tracking-wider">Default Risk (GGs)</span>
+          <span className="font-mono text-xs font-bold uppercase tracking-wider">Sovereign Default (Bankrupt)</span>
         </div>
         <ul className="space-y-2.5 text-xs text-ivory/85 leading-relaxed">
           <li className="flex items-start gap-2">
             <span className="text-crimson font-bold mt-0.5">•</span>
             <span>
-              You spend your cash reserves when you bid for speaking time, invest in the stock market, or get hit by sanctions/fines.
+              You spend your cash reserves when you bid for speaking time, invest in the stock market, or get hit by sanctions and fines.
             </span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-crimson font-bold mt-0.5">•</span>
             <span>
-              <strong className="text-crimson">Warning:</strong> If your cash hits <strong className="text-crimson">$0</strong>, your country goes bankrupt (<strong className="text-crimson">SOVEREIGN DEFAULT // GGs</strong>). Your trading and speaking buttons will lock until you convince a richer country to send you money using the <strong className="text-gold">Wire Emergency Bailout</strong> box on the Trade tab!
+              <strong className="text-crimson">Warning:</strong> If your cash hits <strong className="text-crimson">$0</strong>, your country goes <strong className="text-crimson">Bankrupt</strong>. Your trading, motion, and speaking buttons will lock until you convince a richer country to send you money using the <strong className="text-gold">Wire Emergency Bailout</strong> box on the Trade tab.
             </span>
           </li>
         </ul>
       </Panel>
 
       {/* Card 3 */}
-      <Panel title="Card 3 // How to Win the Simulation" bodyClass="p-4 sm:p-5 space-y-3">
+      <Panel title="Card 3: How to Win the Simulation" bodyClass="p-4 sm:p-5 space-y-3">
         <div className="flex items-center gap-2 text-emerald">
           <CheckCircle2 size={16} />
           <span className="font-mono text-xs font-bold uppercase tracking-wider">Victory Conditions</span>
@@ -219,12 +219,6 @@ const BasicsTab = memo(function BasicsTab() {
             <span className="text-emerald font-bold mt-0.5">•</span>
             <span>
               Work with your allies to push the <strong className="text-gold">Global USD Reserve Share</strong> down on the main projector while growing your country's wealth on the Exchange and passing strong Directives.
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-emerald font-bold mt-0.5">•</span>
-            <span>
-              Keep your liquid reserves healthy, trade smart on bilateral desks, and defend against Western secondary sanctions.
             </span>
           </li>
         </ul>
@@ -238,7 +232,7 @@ const TradingTab = memo(function TradingTab() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Card 1 */}
-      <Panel title="Card 1 // The Stock Market (EXCHANGE Tab)" tone="gold" bodyClass="p-4 sm:p-5 space-y-3">
+      <Panel title="Card 1: The Stock Market (EXCHANGE Tab)" tone="gold" bodyClass="p-4 sm:p-5 space-y-3">
         <div className="flex items-center justify-between border-b border-hairline pb-2">
           <span className="font-mono text-xs font-bold uppercase tracking-wider text-gold">NDB Sovereign Exchange</span>
           <span className="font-mono text-[10px] text-emerald bg-emerald/10 border border-emerald/30 px-2 py-0.5">UNMOD ACTIVE</span>
@@ -250,23 +244,29 @@ const TradingTab = memo(function TradingTab() {
           <p className="font-mono text-[11px] font-bold uppercase text-gold">How to Make Money:</p>
           <ul className="space-y-2 text-xs text-ivory/85 leading-relaxed pl-1">
             <li className="flex items-start gap-2">
-              <span className="font-mono text-emerald font-bold shrink-0">[BUY]</span>
-              <span>Click <strong className="text-emerald">BUY</strong> before good news hits that item (e.g., buy <strong className="text-gold">GOLD</strong> or <strong className="text-emerald">TECH</strong> before passing a BRICS tech deal).</span>
+              <span className="text-gold font-bold mt-0.5">•</span>
+              <span>
+                Click <strong className="text-emerald font-mono">[BUY]</strong> before good news hits that item (e.g., buy <strong className="text-gold">GOLD</strong> or <strong className="text-emerald">TECH</strong> before passing a BRICS tech deal).
+              </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="font-mono text-gold font-bold shrink-0">[SELL]</span>
-              <span>Click <strong className="text-gold">SELL</strong> when the price goes up to take your cash profit.</span>
+              <span className="text-gold font-bold mt-0.5">•</span>
+              <span>
+                Click <strong className="text-gold font-mono">[SELL]</strong> when the price goes up to take your cash profit.
+              </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="font-mono text-crimson font-bold shrink-0">[SHORT]</span>
-              <span>Click <strong className="text-crimson">SHORT</strong> to bet <em>against</em> an item. If you short <strong className="text-crimson">UST</strong> (US Bonds) and the committee passes an anti-dollar directive that crashes the US Dollar, you make huge profits!</span>
+              <span className="text-gold font-bold mt-0.5">•</span>
+              <span>
+                Click <strong className="text-crimson font-mono">[SHORT]</strong> to bet <em>against</em> an item. If you short <strong className="text-crimson">UST</strong> (US Bonds) and the committee passes an anti-dollar directive that crashes the US Dollar, you make huge profits.
+              </span>
             </li>
           </ul>
         </div>
       </Panel>
 
       {/* Card 2 */}
-      <Panel title="Card 2 // Country-to-Country Deals (TRADE Tab)" bodyClass="p-4 sm:p-5 space-y-3">
+      <Panel title="Card 2: Country-to-Country Deals (TRADE Tab)" bodyClass="p-4 sm:p-5 space-y-3">
         <div className="flex items-center justify-between border-b border-hairline pb-2">
           <span className="font-mono text-xs font-bold uppercase tracking-wider text-ivory">Bilateral Settlement & Grain</span>
           <span className="font-mono text-[10px] text-gold bg-gold/10 border border-gold/30 px-2 py-0.5">0% FEE PROTOCOL</span>
@@ -281,13 +281,13 @@ const TradingTab = memo(function TradingTab() {
           <li className="flex items-start gap-2">
             <span className="text-emerald font-bold mt-0.5">•</span>
             <span>
-              <strong className="text-emerald">Remember:</strong> After you send a trade to another delegate, tell them to open their <strong className="text-ivory">Trade Tab</strong> and click <strong className="text-emerald">Accept</strong> so it goes to the Chairs!
+              <strong className="text-emerald">Remember:</strong> After you send a trade to another delegate, tell them to open their <strong className="text-ivory">Trade Tab</strong> and click <strong className="text-emerald">Accept</strong> so it goes to the Chairs.
             </span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-crimson font-bold mt-0.5">•</span>
             <span>
-              <strong className="text-crimson">Barter Crisis Mode:</strong> If a crisis crashes global banks, money freezes! You will have to trade physical items (like oil, gold, cattle, or grapevines) to survive.
+              <strong className="text-crimson">Barter Crisis Mode:</strong> If a crisis crashes global banks, money freezes and you will have to trade physical items (like oil, gold, cattle, or grapevines) to survive.
             </span>
           </li>
         </ul>
@@ -296,12 +296,12 @@ const TradingTab = memo(function TradingTab() {
   );
 });
 
-/* ----------------- SUB-TAB 4: 4. DIRECTIVES (NO RESOLUTIONS!) ----------------- */
+/* ----------------- SUB-TAB 4: 4. DIRECTIVES ----------------- */
 const DirectivesTab = memo(function DirectivesTab() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Card 1 */}
-      <Panel title="Card 1 // Committee Directives (Public Bloc Plans)" tone="gold" bodyClass="p-4 sm:p-5 space-y-3">
+      <Panel title="Card 1: Committee Directives (Public Bloc Plans)" tone="gold" bodyClass="p-4 sm:p-5 space-y-3">
         <div className="flex items-center gap-2 text-gold">
           <FileText size={16} />
           <span className="font-mono text-xs font-bold uppercase tracking-wider">Fast Action-Oriented Directives</span>
@@ -329,7 +329,7 @@ const DirectivesTab = memo(function DirectivesTab() {
       </Panel>
 
       {/* Card 2 */}
-      <Panel title="Card 2 // Personal Financial Directives (Secret Moves)" bodyClass="p-4 sm:p-5 space-y-3">
+      <Panel title="Card 2: Personal Financial Directives (Secret Moves)" bodyClass="p-4 sm:p-5 space-y-3">
         <div className="flex items-center gap-2 text-ivory">
           <Gavel size={16} />
           <span className="font-mono text-xs font-bold uppercase tracking-wider">Covert Sovereign Directives</span>
@@ -338,7 +338,7 @@ const DirectivesTab = memo(function DirectivesTab() {
           <li className="flex items-start gap-2">
             <span className="text-emerald font-bold mt-0.5">•</span>
             <span>
-              Want to make a sneaky move by yourself? Submit a <strong className="text-gold">Personal Directive</strong> on the <strong className="text-ivory">FLOOR</strong> tab directly to the Chairs.
+              Want to make a sneaky move by yourself? Submit a <strong className="text-gold">Personal Directive</strong> on the <code className="font-mono text-ivory">FLOOR</code> tab directly to the Chairs.
             </span>
           </li>
           <li className="flex items-start gap-2">
@@ -348,10 +348,6 @@ const DirectivesTab = memo(function DirectivesTab() {
             </span>
           </li>
         </ul>
-        <div className="border border-hairline bg-charcoal/50 p-3 rounded text-xs font-mono text-sage">
-          <span className="text-emerald font-bold block mb-1">Confidentiality:</span>
-          Chair Eyes Only. Approved covert moves trigger immediate live economic impacts and breaking wires.
-        </div>
       </Panel>
     </div>
   );
@@ -361,9 +357,9 @@ const DirectivesTab = memo(function DirectivesTab() {
 const RulesTab = memo(function RulesTab() {
   return (
     <div className="space-y-4">
-      <Panel title="5. MUN Rules & Procedure // Quick Cheat Sheet" bodyClass="p-4 sm:p-6 space-y-4">
+      <Panel title="5. MUN Rules for Beginners // Quick Cheat Sheet" bodyClass="p-4 sm:p-6 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Roll Call & GSL */}
+          {/* Roll Call */}
           <div className="border border-hairline bg-[#111614] p-4 space-y-2">
             <h4 className="font-mono text-xs font-bold uppercase text-gold tracking-wider">• Roll Call</h4>
             <p className="text-xs text-ivory/85 leading-relaxed">
@@ -371,10 +367,11 @@ const RulesTab = memo(function RulesTab() {
             </p>
           </div>
 
+          {/* GSL */}
           <div className="border border-hairline bg-[#111614] p-4 space-y-2">
             <h4 className="font-mono text-xs font-bold uppercase text-gold tracking-wider">• General Speakers List (GSL)</h4>
             <p className="text-xs text-ivory/85 leading-relaxed">
-              General speeches (usually 60–90 seconds). Bid cash on the <strong className="text-gold">FLOOR</strong> tab to move up the speaking line.
+              General speeches (usually 60–90 seconds). Bid cash on the <code className="font-mono text-gold">FLOOR</code> tab to move up the speaking line.
             </p>
           </div>
 
@@ -415,11 +412,11 @@ const RulesTab = memo(function RulesTab() {
             </div>
             <div className="border border-hairline/60 bg-charcoal/40 p-2.5">
               <span className="font-mono font-bold text-ivory block mb-1">Point of Order</span>
-              <p className="text-sage text-[11px]">Someone made a mistake with the rules or procedure.</p>
+              <p className="text-sage text-[11px]">Someone made a mistake with the rules.</p>
             </div>
             <div className="border border-hairline/60 bg-charcoal/40 p-2.5">
               <span className="font-mono font-bold text-ivory block mb-1">Point of Information</span>
-              <p className="text-sage text-[11px]">Ask a speaker a question about their speech during yields.</p>
+              <p className="text-sage text-[11px]">Ask a speaker a question about their speech.</p>
             </div>
           </div>
         </div>

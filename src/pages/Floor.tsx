@@ -97,7 +97,7 @@ function MotionForm() {
           <textarea className="field min-h-[84px] resize-y" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Gold-Backed Settlement Mechanisms" required />
         </Field>
         <button className="btn btn-gold w-full" type="submit" disabled={!valid || bankrupt}>
-          <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (GGs) // Proposals locked' : 'Submit Motion'}
+          <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (BANKRUPT) // Proposals locked' : 'Submit Motion'}
         </button>
         <Confirm msg={msg} />
       </form>
@@ -307,7 +307,7 @@ function DirectiveForm() {
           <textarea className="field min-h-[84px] resize-y" value={body} onChange={(e) => setBody(e.target.value)} required />
         </Field>
         <button className="btn btn-gold w-full" type="submit" disabled={!valid || bankrupt}>
-          <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (GGs) // Directives locked' : 'Send to Chair'}
+          <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (BANKRUPT) // Directives locked' : 'Send to Chair'}
         </button>
         <Confirm msg={msg} />
       </form>
@@ -351,7 +351,7 @@ function SuezDecree() {
             flash('Sovereign toll directive sent to the Chair');
           }}
         >
-          <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (GGs) // Decrees locked' : pending ? 'Directive awaiting Chair' : 'Submit sovereign toll directive to Chair'}
+          <Send size={13} /> {bankrupt ? 'SOVEREIGN DEFAULT (BANKRUPT) // Decrees locked' : pending ? 'Directive awaiting Chair' : 'Submit sovereign toll directive to Chair'}
         </button>
         <Confirm msg={msg} />
       </div>

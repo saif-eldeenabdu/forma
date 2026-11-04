@@ -307,7 +307,7 @@ describe('GSL Speaking Time Auction Desk', () => {
   });
 });
 
-describe('Sovereign Reserves & Monopoly Bankruptcy (GGs)', () => {
+describe('Sovereign Reserves & Monopoly Bankruptcy (BANKRUPT)', () => {
   it('initializes and reads sovereign cash balances accurately', () => {
     const s = normalize(null);
     expect(s.exchangeState.portfolios['China'].cash).toBe(10_000_000);

@@ -381,7 +381,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const S_state = S();
         const currentReserves = S_state.exchangeState?.portfolios?.[country]?.cash ?? STARTING_CASH;
         if (currentReserves <= 0) {
-          showToast('SOVEREIGN DEFAULT (GGs): Treasury empty. Bidding locked.');
+          showToast('SOVEREIGN DEFAULT (BANKRUPT): Treasury empty. Bidding locked.');
           return;
         }
 
@@ -1010,7 +1010,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const toPf = S_state.exchangeState?.portfolios?.[to] ?? defaultPortfolio();
 
         if (fromPf.cash <= 0) {
-          showToast('SOVEREIGN DEFAULT (GGs): Treasury empty. Cannot wire bailout.');
+          showToast('SOVEREIGN DEFAULT (BANKRUPT): Treasury empty. Cannot wire bailout.');
           return;
         }
         if (fromPf.cash < amt) {
@@ -1043,7 +1043,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (!country) return;
         write({
           [`exchangeState/portfolios/${country}/cash`]: 0,
-          ...news(`CRITICAL: Chair declared Sovereign Default on ${country}. Liquid reserves wiped to $0 (GGs).`),
+          ...news(`CRITICAL: Chair declared Sovereign Default on ${country}. Liquid reserves wiped to $0 (BANKRUPT).`),
         });
         showToast(`SOVEREIGN DEFAULT FORCED: ${country} reserves set to $0`);
       },

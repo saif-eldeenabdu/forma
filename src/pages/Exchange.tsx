@@ -71,7 +71,7 @@ export default function Exchange() {
     validationMessage = 'VIEWER MODE: Authenticate country PIN to execute orders';
   } else if (bankrupt) {
     canExecute = false;
-    validationMessage = 'SOVEREIGN DEFAULT (GGs): Trading suspended until treasury bailed out';
+    validationMessage = 'SOVEREIGN DEFAULT (BANKRUPT): Trading suspended until treasury bailed out';
   } else if (quantity <= 0) {
     canExecute = false;
     validationMessage = 'Quantity must be at least 1';
@@ -568,7 +568,7 @@ export default function Exchange() {
                 }`}
               >
                 {bankrupt
-                  ? 'SOVEREIGN DEFAULT (GGs) // Trading Suspended'
+                  ? 'SOVEREIGN DEFAULT (BANKRUPT) // Trading Suspended'
                   : marketStatus !== 'OPEN'
                   ? 'MARKET CLOSED'
                   : !me

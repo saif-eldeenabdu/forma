@@ -350,7 +350,7 @@ const Roster = memo(function Roster() {
               <div className="mt-2 min-h-[22px]">
                 {bankrupt ? (
                   <span className="stamp !border-crimson !text-crimson animate-pulse block text-center">
-                    💀 SOVEREIGN DEFAULT // GGs (RESERVES DEPLETED)
+                    SOVEREIGN DEFAULT (BANKRUPT)
                   </span>
                 ) : isSanctioned ? (
                   <>
