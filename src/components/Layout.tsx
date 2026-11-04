@@ -16,7 +16,7 @@ const NAV = [
   { to: '/gossip', label: 'Gossip Box', icon: Sparkles },
   { to: '/dossiers', label: 'Dossiers', icon: Landmark },
   { to: '/dais', label: 'The Dais', icon: ScrollText },
-  { to: '/briefing', label: 'Briefing', icon: BookOpen },
+  { to: '/briefing', label: 'Guide // How to Play', icon: BookOpen },
 ];
 
 function Ticker({ items, label, tone = 'gold', speed = 14 }: { items: string[]; label: string; tone?: 'gold' | 'crimson'; speed?: number }) {

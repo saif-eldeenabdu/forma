@@ -4,6 +4,7 @@ import { X, Sparkles } from 'lucide-react';
 import { COUNTRIES, type Country } from '../data/countries';
 import { useStore } from '../lib/store';
 import { PageHeader } from '../components/ui';
+import { TabHelpButton } from '../components/TabHelpButton';
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -190,9 +191,12 @@ export default function Dossiers() {
     <div>
       <PageHeader kicker="Delegations // 2026 Framework" title="Country Dossiers &amp; Cheat Sheets">
         <div className="flex flex-col items-end gap-2">
-          <p className="label max-w-md text-right">
-            22 Official Delegations (11 Full Members + 11 Partners). Select any card to open the strategy cheat sheet.
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="label max-w-md text-right hidden sm:block">
+              22 Official Delegations (11 Full Members + 11 Partners). Select any card to open the strategy cheat sheet.
+            </p>
+            <TabHelpButton tabKey="dossiers" />
+          </div>
           <div className="flex items-center border border-hairline bg-charcoal p-0.5 text-[11px] font-mono">
             <button
               onClick={() => setTierFilter('ALL')}

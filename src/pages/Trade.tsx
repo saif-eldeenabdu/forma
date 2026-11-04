@@ -3,6 +3,7 @@ import { ArrowLeftRight, Ban, Check, Hourglass, Lock, Send, X } from 'lucide-rea
 import { COUNTRY_NAMES, useStore } from '../lib/store';
 import { COUNTRIES, FULL_MEMBERS, PARTNERS } from '../data/countries';
 import { Field, PageHeader, Panel } from '../components/ui';
+import { TabHelpButton } from '../components/TabHelpButton';
 import type { GrainCommodity, GrainSettlement, Trade, TradeKind } from '../lib/types';
 import { GRAIN_TYPES, USD_SURCHARGE_PCT, fmtMT, grainLedgerLine, grainType } from '../data/grain';
 
@@ -465,9 +466,12 @@ export default function Trade() {
   return (
     <div className="space-y-3">
       <PageHeader kicker={barter ? 'Emergency // Physical Barter Ledger' : 'Bilateral Settlement Desk'} title={barter ? 'Barter Mode — Cows for Grapevines' : 'Trade & Barter Floor'}>
-        <span className={`border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] ${barter ? 'flash-border border-2 text-crimson' : 'border-emerald text-emerald'}`}>
-          {barter ? 'Fiat frozen // commodity barter only' : locked ? 'Transfers suspended' : 'Money transfers open'}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className={`border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] ${barter ? 'flash-border border-2 text-crimson' : 'border-emerald text-emerald'}`}>
+            {barter ? 'Fiat frozen // commodity barter only' : locked ? 'Transfers suspended' : 'Money transfers open'}
+          </span>
+          <TabHelpButton tabKey="trade" />
+        </div>
       </PageHeader>
 
       {barter && (

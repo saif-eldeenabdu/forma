@@ -1,9 +1,10 @@
-﻿import { useState, useMemo, type FormEvent } from 'react';
+import { useState, useMemo, type FormEvent } from 'react';
 import { MessageSquare, Radio, Send, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { COUNTRIES, byName } from '../data/countries';
 import { PageHeader, Panel } from '../components/ui';
 import FreezeBanner from '../components/FreezeBanner';
+import { TabHelpButton } from '../components/TabHelpButton';
 
 const QUICK_PROMPTS = [
   'Propose mutual gold-backed currency swap',
@@ -101,6 +102,7 @@ export default function Comms() {
           <span className="label">
             {activeTarget === 'GLOBAL' ? 'Global diplomatic wire' : `P2P // ${activeTarget}`}
           </span>
+          <TabHelpButton tabKey="comms" />
         </div>
       </PageHeader>
 

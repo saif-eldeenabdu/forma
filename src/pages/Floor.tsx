@@ -6,6 +6,7 @@ import type { MotionType, SuezCurrency } from '../lib/types';
 import { Field, PageHeader, Panel, fmtSecondsLabel } from '../components/ui';
 import { motionLine } from '../components/Overlays';
 import FreezeBanner from '../components/FreezeBanner';
+import { TabHelpButton } from '../components/TabHelpButton';
 
 function useFlash() {
   const [msg, setMsg] = useState('');
@@ -363,7 +364,9 @@ export default function Floor() {
     <div className="space-y-3">
       <FreezeBanner />
       <div>
-        <PageHeader kicker="Floor Portal // Procedure" title="Motions & Floor" />
+        <PageHeader kicker="Floor Portal // Procedure" title="Motions & Floor">
+          <TabHelpButton tabKey="floor" />
+        </PageHeader>
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
           <MotionForm />
           <MotionLedger />

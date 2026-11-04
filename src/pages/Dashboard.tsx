@@ -7,6 +7,7 @@ import { fmtClock } from '../lib/timer';
 import { AnimatedNumber, Panel, Sparkline } from '../components/ui';
 import { GslPanel, TimerPanel } from '../components/Timer';
 import FreezeBanner from '../components/FreezeBanner';
+import { TabHelpButton } from '../components/TabHelpButton';
 
 const BASELINE_USD = 58.4;
 const LINE_COLORS = [
@@ -465,6 +466,13 @@ export default function Dashboard() {
           </p>
         </div>
       )}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-2.5">
+        <div>
+          <p className="label !text-gold">Live Scoreboard // Main Terminal</p>
+          <h1 className="text-2xl font-serif font-bold text-ivory">Global De-Dollarization Architecture</h1>
+        </div>
+        <TabHelpButton tabKey="terminal" />
+      </div>
       <FreezeBanner />
       <MacroBar />
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">

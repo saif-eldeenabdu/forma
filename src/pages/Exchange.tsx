@@ -19,6 +19,7 @@ import { DEFAULT_TICKERS, TICKER_SYMBOLS, calculatePortfolioValue, STARTING_CASH
 import type { TickerSymbol } from '../lib/types';
 import { byName } from '../data/countries';
 import { PageHeader, Panel } from '../components/ui';
+import { TabHelpButton } from '../components/TabHelpButton';
 
 export default function Exchange() {
   const { state, actions, me, bankrupt } = useStore();
@@ -154,6 +155,7 @@ export default function Exchange() {
             />
             FLOOR STATUS: {marketStatus}
           </div>
+          <TabHelpButton tabKey="exchange" />
         </div>
       </PageHeader>
 

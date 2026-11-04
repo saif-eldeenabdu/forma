@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Send, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { PageHeader, Panel } from '../components/ui';
+import { TabHelpButton } from '../components/TabHelpButton';
 
 export default function Gossip() {
   const { actions } = useStore();
@@ -20,10 +21,13 @@ export default function Gossip() {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <PageHeader kicker="Anonymous Wire // Strict Discretion" title="Gossip Box">
-        <span className="flex items-center gap-1.5 font-mono text-[11px] text-gold">
-          <span className="h-1.5 w-1.5 rounded-full bg-gold animate-ping" />
-          CHAIR EYES ONLY // ZERO-LOGGING
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5 font-mono text-[11px] text-gold">
+            <span className="h-1.5 w-1.5 rounded-full bg-gold animate-ping" />
+            CHAIR EYES ONLY // ZERO-LOGGING
+          </span>
+          <TabHelpButton tabKey="gossip" />
+        </div>
       </PageHeader>
 
       <Panel title="Submit Anonymous Wire" tone="gold" bodyClass="p-5 sm:p-6">

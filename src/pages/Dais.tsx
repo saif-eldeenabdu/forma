@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
 import { PageHeader } from '../components/ui';
+import { TabHelpButton } from '../components/TabHelpButton';
 import { useStore } from '../lib/store';
 import { CHAIR_PROFILES } from '../data/chairs';
 import type { ChairProfile } from '../lib/types';
@@ -84,7 +85,9 @@ export default function Dais() {
   const chairs = state.committeeState.chairs ?? CHAIR_PROFILES;
   return (
     <div>
-      <PageHeader kicker="Committee Leadership" title="Executive Dossiers // The Dais" />
+      <PageHeader kicker="Committee Leadership" title="Executive Dossiers // The Dais">
+        <TabHelpButton tabKey="dais" />
+      </PageHeader>
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         <Dossier id="judy" p={chairs.judy ?? CHAIR_PROFILES.judy} />
         <Dossier id="saif" p={chairs.saif ?? CHAIR_PROFILES.saif} />
