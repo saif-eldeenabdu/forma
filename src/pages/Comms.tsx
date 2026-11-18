@@ -17,6 +17,7 @@ const QUICK_PROMPTS = [
 export default function Comms() {
   const { state, me, actions, bankrupt } = useStore();
   const [activeTarget, setActiveTarget] = useState<string>('GLOBAL');
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('chat');
   const [inputText, setInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -106,16 +107,19 @@ export default function Comms() {
         </div>
       </PageHeader>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
         {/* Left Sidebar: Counterparties & Global Channel */}
-        <div className="space-y-3 lg:col-span-4 xl:col-span-3">
+        <div className={`${mobileView === 'list' ? 'block' : 'hidden'} md:block space-y-3 md:col-span-5 lg:col-span-4 xl:col-span-3`}>
           <Panel title="Diplomatic Frequencies" bodyClass="p-0">
             {/* Global Wire Button */}
             <div className="p-2 border-b border-hairline">
               <button
                 type="button"
-                onClick={() => setActiveTarget('GLOBAL')}
-                className={`w-full flex items-center justify-between p-2.5 text-xs transition-colors rounded ${
+                onClick={() => {
+                  setActiveTarget('GLOBAL');
+                  setMobileView('chat');
+                }}
+                className={`w-full min-h-[44px] flex items-center justify-between p-2.5 text-xs transition-colors rounded ${
                   activeTarget === 'GLOBAL'
                     ? 'bg-gold text-obsidian font-bold shadow'
                     : 'bg-charcoal text-ivory hover:bg-charcoal/80'
@@ -138,12 +142,12 @@ export default function Comms() {
                 placeholder="Search delegations..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="field !py-1 text-xs"
+                className="field !py-1.5 text-base sm:text-xs"
               />
             </div>
 
             {/* Counterparty Channels */}
-            <div className="max-h-[500px] overflow-y-auto divide-y divide-hairline">
+            <div className="max-h-[60vh] md:max-h-[500px] overflow-y-auto divide-y divide-hairline">
               {counterparties.map((c) => {
                 const isSelected = activeTarget === c.name;
                 const unread = incomingMap[c.name] || 0;
@@ -153,8 +157,11 @@ export default function Comms() {
                   <button
                     key={c.name}
                     type="button"
-                    onClick={() => setActiveTarget(c.name)}
-                    className={`w-full flex items-center justify-between p-2.5 text-left transition-colors ${
+                    onClick={() => {
+                      setActiveTarget(c.name);
+                      setMobileView('chat');
+                    }}
+                    className={`w-full min-h-[48px] flex items-center justify-between p-2.5 text-left transition-colors ${
                       isSelected
                         ? 'bg-gold/15 border-l-2 border-gold text-ivory'
                         : 'hover:bg-charcoal/60 text-sage hover:text-ivory'
@@ -189,12 +196,23 @@ export default function Comms() {
         </div>
 
         {/* Right Main Chat Area */}
-        <div className="space-y-3 lg:col-span-8 xl:col-span-9">
+        <div className={`${mobileView === 'chat' ? 'block' : 'hidden'} md:block space-y-3 md:col-span-7 lg:col-span-8 xl:col-span-9`}>
+          {/* Mobile Back to Chats Bar */}
+          <div className="flex items-center justify-between gap-2 md:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileView('list')}
+              className="btn btn-gold min-h-[44px] w-full justify-center font-mono text-xs font-bold uppercase tracking-wider"
+            >
+              [ ← BACK TO CHATS ]
+            </button>
+          </div>
+
           <Panel
             title={
               <div className="flex items-center gap-2">
-                <MessageSquare size={14} className="text-gold" />
-                <span>
+                <MessageSquare size={14} className="text-gold shrink-0" />
+                <span className="truncate">
                   {activeTarget === 'GLOBAL'
                     ? 'GLOBAL DIPLOMATIC WIRE // BROADCAST'
                     : `CABLE WITH ${activeTarget.toUpperCase()} [${targetCountry?.code || ''}]`}
@@ -208,7 +226,7 @@ export default function Comms() {
                 <span className="text-[11px] text-crimson">Unauthenticated Viewer</span>
               )
             }
-            bodyClass="p-0 flex flex-col h-[600px]"
+            bodyClass="p-0 flex flex-col h-[520px] sm:h-[600px]"
           >
             {/* Messages Feed */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-obsidian/40">
@@ -262,9 +280,9 @@ export default function Comms() {
                             <button
                               type="button"
                               onClick={() => actions.leakBackchannelMessage(m.id)}
-                              className="border border-crimson/80 bg-crimson/15 px-2 py-1 text-[10px] uppercase font-bold text-crimson hover:bg-crimson hover:text-ivory transition-colors flex items-center gap-1.5"
+                              className="min-h-[44px] sm:min-h-0 border border-crimson/80 bg-crimson/15 px-2.5 py-1.5 text-[10px] uppercase font-bold text-crimson hover:bg-crimson hover:text-ivory transition-colors flex items-center gap-1.5"
                             >
-                              <span>📢 LEAK TO PRESS</span>
+                              <span>[LEAK TO PRESS]</span>
                             </button>
                           </div>
                         )}
@@ -283,7 +301,7 @@ export default function Comms() {
                     key={idx}
                     type="button"
                     onClick={() => handleQuickPrompt(prompt)}
-                    className="shrink-0 border border-hairline bg-charcoal px-2 py-1 text-[10px] text-sage hover:text-ivory hover:border-gold/50 transition-colors"
+                    className="shrink-0 min-h-[36px] sm:min-h-0 border border-hairline bg-charcoal px-2.5 py-1 text-[10px] text-sage hover:text-ivory hover:border-gold/50 transition-colors"
                   >
                     "{prompt}"
                   </button>
@@ -302,18 +320,18 @@ export default function Comms() {
                   Authenticate your delegation PIN to transmit classified cables.
                 </div>
               ) : (
-                <form onSubmit={handleSend} className="flex gap-2">
+                <form onSubmit={handleSend} className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     placeholder={`Transmit cable to ${activeTarget === 'GLOBAL' ? 'Global Wire' : activeTarget}...`}
-                    className="field flex-1 text-xs font-sans"
+                    className="field flex-1 text-base sm:text-xs font-sans"
                   />
                   <button
                     type="submit"
                     disabled={!inputText.trim()}
-                    className="btn btn-gold shrink-0 px-4 flex items-center gap-1.5 text-xs font-bold"
+                    className="btn btn-gold min-h-[44px] shrink-0 px-4 flex items-center justify-center gap-1.5 text-xs font-bold"
                   >
                     <Send size={12} />
                     <span>SEND</span>

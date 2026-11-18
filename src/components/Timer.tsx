@@ -115,23 +115,23 @@ export const TimerPanel = memo(function TimerPanel() {
       {canYield && (
         <div className="mt-3 space-y-2 border-t border-hairline pt-3">
           <p className="label">Yield remaining time</p>
-          <div className="grid grid-cols-2 gap-2">
-            <button className="btn" onClick={() => actions.yieldTime('CHAIR')}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button className="btn min-h-[44px]" onClick={() => actions.yieldTime('CHAIR')}>
               <Hand size={12} /> To the Chair
             </button>
-            <button className="btn" onClick={() => actions.yieldTime('QUESTIONS')}>
+            <button className="btn min-h-[44px]" onClick={() => actions.yieldTime('QUESTIONS')}>
               <HelpCircle size={12} /> Questions
             </button>
           </div>
-          <div className="flex gap-2">
-            <select className="field !py-1.5 text-xs" value={yieldTarget} onChange={(e) => setYieldTarget(e.target.value)} aria-label="Yield to delegate">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <select className="field !py-2 text-base sm:text-xs" value={yieldTarget} onChange={(e) => setYieldTarget(e.target.value)} aria-label="Yield to delegate">
               <option value="">Delegate…</option>
               {COUNTRY_NAMES.filter((c) => c !== t.currentSpeaker).map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
             <button
-              className="btn shrink-0"
+              className="btn min-h-[44px] shrink-0"
               disabled={!yieldTarget}
               onClick={() => {
                 actions.yieldTime('DELEGATE', yieldTarget);

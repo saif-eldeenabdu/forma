@@ -22,9 +22,9 @@ export default function FreezeBanner() {
             signatories required.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-2">
           <button
-            className="btn btn-gold"
+            className="btn btn-gold min-h-[44px]"
             disabled={!me || signed}
             onClick={() => actions.cosignBricsClear(me)}
             title={!me ? 'Select your delegation in the header first' : undefined}
@@ -32,7 +32,7 @@ export default function FreezeBanner() {
             {signed ? 'Signed' : 'Ratify BRICS Clear Multilateral Depository'}
           </button>
           {isChair && (
-            <button className="btn btn-emerald" onClick={() => actions.ratifyBricsClear()}>
+            <button className="btn btn-emerald min-h-[44px]" onClick={() => actions.ratifyBricsClear()}>
               Chair: ratify now
             </button>
           )}

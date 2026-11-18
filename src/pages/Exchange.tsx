@@ -164,8 +164,8 @@ export default function Exchange() {
         {/* Left Panel: Chart & Asset Overview (7 Cols) */}
         <div className="space-y-4 lg:col-span-7">
           {/* Asset Switcher Bar */}
-          <div className="grid grid-cols-5 gap-px border border-hairline bg-hairline">
-            {TICKER_SYMBOLS.map((sym) => {
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-px border border-hairline bg-hairline">
+            {TICKER_SYMBOLS.map((sym, idx) => {
               const t = tickers[sym] ?? DEFAULT_TICKERS[sym];
               const isSelected = selectedTicker === sym;
               const isPos = t.change24h >= 0;
@@ -173,7 +173,9 @@ export default function Exchange() {
                 <button
                   key={sym}
                   onClick={() => setSelectedTicker(sym)}
-                  className={`flex flex-col items-start p-2.5 transition-colors ${
+                  className={`flex min-h-[48px] flex-col items-start p-2.5 transition-colors ${
+                    idx === TICKER_SYMBOLS.length - 1 ? 'col-span-2 sm:col-span-1' : ''
+                  } ${
                     isSelected ? 'bg-gold/15 border-b-2 border-gold text-ivory' : 'bg-charcoal text-sage hover:bg-charcoal/80 hover:text-ivory'
                   }`}
                 >
@@ -197,15 +199,15 @@ export default function Exchange() {
           </div>
 
           {/* Terminal Chart Panel */}
-          <div className="panel p-5">
+          <div className="panel p-4 sm:p-5">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-hairline pb-3">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="label !text-gold">{activeTicker.symbol}</span>
                   <span className="text-xs text-sage">// {activeTicker.name}</span>
                 </div>
-                <div className="mt-1 flex items-baseline gap-3">
-                  <span className="font-mono text-3xl font-bold tracking-tight text-ivory">
+                <div className="mt-1 flex flex-wrap items-baseline gap-2 sm:gap-3">
+                  <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-ivory">
                     ${activeTicker.currentPrice.toLocaleString()}
                   </span>
                   <span
@@ -235,7 +237,7 @@ export default function Exchange() {
             </div>
 
             {/* Recharts Dark Graph */}
-            <div className="h-72 w-full pt-2">
+            <div className="h-[240px] sm:h-[320px] w-full pt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
@@ -287,20 +289,20 @@ export default function Exchange() {
             </div>
 
             {/* Terminal Info Bar */}
-            <div className="mt-4 grid grid-cols-3 gap-2 border-t border-hairline pt-3 font-mono text-[11px]">
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 border-t border-hairline pt-3 font-mono text-[11px]">
               <div>
                 <span className="text-sage">24H HIGH: </span>
                 <span className="font-semibold text-ivory">
                   ${Math.max(...(activeTicker.history || [activeTicker.currentPrice])).toLocaleString()}
                 </span>
               </div>
-              <div className="text-center">
+              <div className="sm:text-center">
                 <span className="text-sage">24H LOW: </span>
                 <span className="font-semibold text-ivory">
                   ${Math.min(...(activeTicker.history || [activeTicker.currentPrice])).toLocaleString()}
                 </span>
               </div>
-              <div className="text-right">
+              <div className="sm:text-right">
                 <span className="text-sage">SETTLEMENT: </span>
                 <span className="font-semibold text-gold">INSTANT RTDB</span>
               </div>
@@ -433,7 +435,7 @@ export default function Exchange() {
                 <button
                   type="button"
                   onClick={() => setOrderAction('BUY')}
-                  className={`py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
+                  className={`min-h-[44px] py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
                     orderAction === 'BUY'
                       ? 'bg-emerald text-obsidian'
                       : 'bg-charcoal text-sage hover:text-ivory'
@@ -444,7 +446,7 @@ export default function Exchange() {
                 <button
                   type="button"
                   onClick={() => setOrderAction('SELL')}
-                  className={`py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
+                  className={`min-h-[44px] py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
                     orderAction === 'SELL'
                       ? 'bg-gold text-obsidian'
                       : 'bg-charcoal text-sage hover:text-ivory'
@@ -455,7 +457,7 @@ export default function Exchange() {
                 <button
                   type="button"
                   onClick={() => setOrderAction('SHORT')}
-                  className={`py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
+                  className={`min-h-[44px] py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
                     orderAction === 'SHORT'
                       ? 'bg-crimson text-ivory'
                       : 'bg-charcoal text-sage hover:text-ivory'
@@ -491,14 +493,14 @@ export default function Exchange() {
                   placeholder="Quantity..."
                   disabled={marketStatus !== 'OPEN' || !me}
                 />
-                <div className="mt-2 flex gap-1.5">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {[10, 50, 100, 500, 1000].map((step) => (
                     <button
                       key={step}
                       type="button"
                       onClick={() => handleQuickQty(step)}
                       disabled={marketStatus !== 'OPEN' || !me}
-                      className="btn !px-2 !py-0.5 !text-[10px] text-sage hover:text-ivory"
+                      className="btn flex-1 min-w-[52px] !px-2 !py-1 !text-[10px] text-sage hover:text-ivory"
                     >
                       +{step}
                     </button>
@@ -507,7 +509,7 @@ export default function Exchange() {
                     type="button"
                     onClick={handleMaxQty}
                     disabled={marketStatus !== 'OPEN' || !me}
-                    className="btn !px-2 !py-0.5 !text-[10px] text-gold hover:text-gold/80"
+                    className="btn flex-1 min-w-[52px] !px-2 !py-1 !text-[10px] text-gold hover:text-gold/80"
                   >
                     MAX
                   </button>
@@ -557,7 +559,7 @@ export default function Exchange() {
               <button
                 type="submit"
                 disabled={!canExecute || bankrupt}
-                className={`w-full py-3 font-mono text-xs font-bold uppercase tracking-[0.14em] transition-opacity ${
+                className={`w-full min-h-[44px] py-3 font-mono text-xs font-bold uppercase tracking-[0.14em] transition-opacity ${
                   !canExecute || bankrupt
                     ? 'cursor-not-allowed bg-charcoal text-sage opacity-50'
                     : orderAction === 'BUY'

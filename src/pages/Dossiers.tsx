@@ -28,7 +28,7 @@ function Modal({ c, onClose }: { c: Country; onClose: () => void }) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-[55] flex items-start justify-center overflow-y-auto bg-obsidian/90 p-3 md:p-8"
+      className="fixed inset-0 z-[55] flex items-center justify-center bg-obsidian/90 p-3 md:p-8"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -37,12 +37,12 @@ function Modal({ c, onClose }: { c: Country; onClose: () => void }) {
       <motion.article
         layoutId={`dossier-${c.name}`}
         onClick={(e) => e.stopPropagation()}
-        className="panel w-full max-w-3xl bg-basalt"
+        className="panel w-[94vw] max-w-lg sm:max-w-3xl max-h-[85vh] overflow-y-auto bg-basalt p-4 sm:p-6"
         role="dialog"
         aria-label={`${c.name} dossier`}
       >
-        <header className="flex items-start justify-between gap-4 border-b border-hairline p-5">
-          <div>
+        <header className="flex items-start justify-between gap-4 border-b border-hairline pb-4 mb-4">
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span
                 className={`border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
@@ -55,14 +55,14 @@ function Modal({ c, onClose }: { c: Country; onClose: () => void }) {
               </span>
               <span className="label !text-sage">{c.code} // {c.currencyCode} — {c.currencyName}</span>
             </div>
-            <h2 className="mt-2 text-4xl font-medium leading-none">{c.name}</h2>
+            <h2 className="mt-2 text-2xl sm:text-4xl font-medium leading-tight break-words">{c.name}</h2>
             {sanctioned && <span className="stamp mt-3">Sanctioned // SWIFT cutoff</span>}
           </div>
-          <button onClick={onClose} className="text-sage hover:text-ivory" aria-label="Close dossier">
+          <button onClick={onClose} className="inline-flex min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 items-center justify-center p-1 text-sage hover:text-ivory" aria-label="Close dossier">
             <X size={18} />
           </button>
         </header>
-        <div className="space-y-5 p-5">
+        <div className="space-y-5">
           {/* CHEAT SHEET & RESEARCH STRATEGY */}
           <section className="border-l-2 border-emerald bg-emerald/5 p-4">
             <div className="flex items-center gap-2">
@@ -197,10 +197,10 @@ export default function Dossiers() {
             </p>
             <TabHelpButton tabKey="dossiers" />
           </div>
-          <div className="flex items-center border border-hairline bg-charcoal p-0.5 text-[11px] font-mono">
+          <div className="flex flex-wrap items-center border border-hairline bg-charcoal p-0.5 text-[11px] font-mono">
             <button
               onClick={() => setTierFilter('ALL')}
-              className={`px-3 py-1 uppercase tracking-wider transition-colors ${
+              className={`min-h-[44px] sm:min-h-0 px-3 py-1 uppercase tracking-wider transition-colors ${
                 tierFilter === 'ALL' ? 'bg-ivory text-obsidian font-bold' : 'text-sage hover:text-ivory'
               }`}
             >
@@ -208,7 +208,7 @@ export default function Dossiers() {
             </button>
             <button
               onClick={() => setTierFilter('MEMBERS')}
-              className={`px-3 py-1 uppercase tracking-wider transition-colors ${
+              className={`min-h-[44px] sm:min-h-0 px-3 py-1 uppercase tracking-wider transition-colors ${
                 tierFilter === 'MEMBERS' ? 'bg-gold text-obsidian font-bold' : 'text-sage hover:text-ivory'
               }`}
             >
@@ -216,7 +216,7 @@ export default function Dossiers() {
             </button>
             <button
               onClick={() => setTierFilter('PARTNERS')}
-              className={`px-3 py-1 uppercase tracking-wider transition-colors ${
+              className={`min-h-[44px] sm:min-h-0 px-3 py-1 uppercase tracking-wider transition-colors ${
                 tierFilter === 'PARTNERS' ? 'bg-emerald text-obsidian font-bold' : 'text-sage hover:text-ivory'
               }`}
             >
@@ -226,7 +226,7 @@ export default function Dossiers() {
         </div>
       </PageHeader>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {filtered.map((c) => {
           const sanctioned = !!state.committeeState.sanctions[c.name];
           const isFull = c.tier === 'FULL BRICS MEMBER';

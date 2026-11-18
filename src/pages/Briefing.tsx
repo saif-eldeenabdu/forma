@@ -31,7 +31,7 @@ export default function Briefing() {
       </PageHeader>
 
       {/* Sub-tab Navigation Bar */}
-      <div role="tablist" className="flex flex-wrap gap-px border border-hairline bg-hairline">
+      <div role="tablist" className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-px border border-hairline bg-hairline">
         {SUB_TABS.map((t) => {
           const Icon = t.icon;
           const isActive = activeTab === t.id;
@@ -41,7 +41,7 @@ export default function Briefing() {
               role="tab"
               aria-selected={isActive}
               onClick={() => setActiveTab(t.id)}
-              className={`flex-1 min-w-[180px] flex items-center justify-center gap-2 px-4 py-3 font-mono text-xs uppercase tracking-[0.12em] transition-all relative ${
+              className={`flex-1 min-h-[44px] flex items-center justify-center gap-2 px-4 py-3 font-mono text-xs uppercase tracking-[0.12em] transition-all relative ${
                 isActive
                   ? 'bg-gold text-obsidian font-bold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
                   : 'bg-charcoal text-sage hover:text-ivory hover:bg-charcoal/80'

@@ -51,21 +51,21 @@ export function CrisisOverlay() {
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.98, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-            className={`w-full ${isBarter ? 'max-w-4xl border-4 flash-border' : `max-w-2xl border-2 ${toneBorder}`} bg-basalt p-6 md:p-10`}
+            className={`w-[94vw] max-w-lg sm:max-w-2xl max-h-[85vh] overflow-y-auto ${isBarter ? 'md:max-w-4xl border-4 flash-border' : `border-2 ${toneBorder}`} bg-basalt p-4 sm:p-6 md:p-10`}
           >
             <div className="mb-4 flex items-center gap-3">
-              {isBarter ? <AlertOctagon className="text-gold" size={28} /> : <Radio className={toneText} size={22} />}
+              {isBarter ? <AlertOctagon className="text-gold shrink-0" size={28} /> : <Radio className={`${toneText} shrink-0`} size={22} />}
               <span className={`label ${isBarter ? '!text-gold' : toneText} blink`}>
                 {isBarter ? 'Emergency Broadcast // Priority Zero' : `Breaking // ${alert.severity}`}
               </span>
             </div>
-            <h2 className={`font-serif ${isBarter ? 'text-3xl md:text-5xl text-crimson' : `text-2xl md:text-4xl ${toneText}`} font-medium leading-tight`}>
+            <h2 className={`font-serif ${isBarter ? 'text-2xl sm:text-3xl md:text-5xl text-crimson' : `text-xl sm:text-2xl md:text-4xl ${toneText}`} font-medium leading-tight break-words`}>
               {alert.title}
             </h2>
-            <p className={`mt-4 ${isBarter ? 'text-xl md:text-3xl text-gold font-serif' : 'text-base md:text-xl text-ivory/90'}`}>{alert.body}</p>
-            <div className="mt-8 flex items-center justify-between">
+            <p className={`mt-4 ${isBarter ? 'text-lg sm:text-xl md:text-3xl text-gold font-serif' : 'text-sm sm:text-base md:text-xl text-ivory/90'}`}>{alert.body}</p>
+            <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-between gap-3">
               <span className="tabular text-[11px] text-sage">REF {alert.id.toUpperCase()}</span>
-              <button className={`btn ${isBarter ? 'btn-gold' : ''}`} onClick={close}>
+              <button className={`btn min-h-[44px] ${isBarter ? 'btn-gold' : ''}`} onClick={close}>
                 Acknowledge
               </button>
             </div>
@@ -115,15 +115,15 @@ export function MotionFlash() {
             initial={{ y: 24, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 24, opacity: 0 }}
-            className="w-full max-w-3xl border-2 border-gold bg-basalt p-6 md:p-10"
+            className="w-[94vw] max-w-lg sm:max-w-3xl max-h-[85vh] overflow-y-auto border-2 border-gold bg-basalt p-4 sm:p-6 md:p-10"
           >
             <p className="label !text-gold">On the floor // For voting</p>
-            <h2 className="mt-3 font-serif text-3xl md:text-5xl">{motionLine(m)}</h2>
-            <p className="mt-4 text-lg text-ivory/90 md:text-2xl">{m.topic || 'No topic stated.'}</p>
-            <div className="mt-8 flex items-center justify-between">
+            <h2 className="mt-3 font-serif text-2xl sm:text-3xl md:text-5xl break-words">{motionLine(m)}</h2>
+            <p className="mt-4 text-base sm:text-lg text-ivory/90 md:text-2xl">{m.topic || 'No topic stated.'}</p>
+            <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-between gap-3">
               <span className="tabular text-sm text-sage">Moved by <span className="text-ivory">{m.delegation}</span></span>
               <button
-                className="btn btn-gold"
+                className="btn btn-gold min-h-[44px]"
                 onClick={() => {
                   sessionStorage.setItem(MOTION_KEY, m.id);
                   setDismissed(m.id);

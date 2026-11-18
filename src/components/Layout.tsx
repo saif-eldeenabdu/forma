@@ -120,14 +120,14 @@ function PinModal({ onClose }: { onClose: () => void }) {
         initial={{ y: 12, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 12, opacity: 0 }}
-        className="panel w-full max-w-sm p-5"
+        className="panel w-[94vw] max-w-lg max-h-[85vh] overflow-y-auto p-4 sm:p-6"
       >
         <div className="mb-4 flex items-start justify-between">
           <div>
             <p className="label !text-gold">Restricted // Chair Only</p>
             <h2 className="mt-1 text-2xl">Chair Access</h2>
           </div>
-          <button type="button" onClick={onClose} className="text-sage hover:text-ivory" aria-label="Close">
+          <button type="button" onClick={onClose} className="p-2 text-sage hover:text-ivory" aria-label="Close">
             <X size={16} />
           </button>
         </div>
@@ -147,7 +147,7 @@ function PinModal({ onClose }: { onClose: () => void }) {
           aria-label="Chair PIN"
         />
         {err && <p className="mt-2 font-mono text-[11px] uppercase text-crimson">Access denied // invalid PIN</p>}
-        <button className="btn btn-gold mt-4 w-full" type="submit">
+        <button className="btn btn-gold mt-4 w-full min-h-[44px]" type="submit">
           <Lock size={13} /> Authenticate
         </button>
       </motion.form>
@@ -187,20 +187,20 @@ function DelegationAuthModal({ onClose }: { onClose: () => void }) {
         initial={{ y: 12, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 12, opacity: 0 }}
-        className="panel w-full max-w-sm p-5"
+        className="panel w-[94vw] max-w-lg max-h-[85vh] overflow-y-auto p-4 sm:p-6"
       >
         <div className="mb-4 flex items-start justify-between">
           <div>
             <p className="label !text-gold">Sovereign Identity Lock</p>
             <h2 className="mt-1 text-2xl">Claim Delegation</h2>
           </div>
-          <button type="button" onClick={onClose} className="text-sage hover:text-ivory" aria-label="Close">
+          <button type="button" onClick={onClose} className="p-2 text-sage hover:text-ivory" aria-label="Close">
             <X size={16} />
           </button>
         </div>
         <label className="label mb-1 block">Select Country</label>
         <select
-          className="field mb-3"
+          className="field mb-3 text-base sm:text-sm"
           value={country}
           onChange={(e) => {
             setCountry(e.target.value);
@@ -236,7 +236,7 @@ function DelegationAuthModal({ onClose }: { onClose: () => void }) {
           aria-label="Delegation PIN"
         />
         {err && <p className="mt-2 font-mono text-[11px] uppercase text-crimson">Authentication failed // invalid PIN for {country}</p>}
-        <button className="btn btn-gold mt-4 w-full" type="submit" disabled={!pin.trim()}>
+        <button className="btn btn-gold mt-4 w-full min-h-[44px]" type="submit" disabled={!pin.trim()}>
           <Lock size={13} /> Authenticate Delegation
         </button>
       </motion.form>
@@ -290,17 +290,17 @@ export default function Layout() {
     .map((t, i) => `LEDGER #${String(i + 1).padStart(3, '0')} — ${t.from} ⇄ ${t.to}: ${t.offer} FOR ${t.request}`);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen w-full max-w-[100vw] flex-col overflow-x-hidden">
       <header className="sticky top-0 z-30 border-b border-hairline bg-obsidian/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1920px] items-center justify-between gap-2 px-3 py-2 md:px-5">
+        <div className="mx-auto flex max-w-[1920px] flex-wrap items-center justify-between gap-2 px-3 py-2 md:px-5">
           {/* Left: Brand Title & Compact Hamburger Menu Button */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
               aria-label="Open navigation menu"
               aria-expanded={drawerOpen}
-              className="relative inline-flex items-center gap-1.5 border border-gold/60 bg-[#111614] px-2.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-gold transition-colors hover:bg-gold hover:text-obsidian"
+              className="relative inline-flex min-h-[44px] sm:min-h-0 items-center gap-1.5 border border-gold/60 bg-[#111614] px-2.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-gold transition-colors hover:bg-gold hover:text-obsidian"
             >
               <Menu size={13} strokeWidth={2} />
               <span>[ ☰ MENU ]</span>
@@ -311,23 +311,23 @@ export default function Layout() {
               )}
             </button>
 
-            <button onClick={() => navigate('/')} className="flex items-center gap-2.5 text-left" aria-label="Home">
+            <button onClick={() => navigate('/')} className="flex items-center gap-2 text-left" aria-label="Home">
               <span className="hidden sm:grid h-8 w-8 place-items-center border border-gold text-gold">
                 <Globe2 size={16} strokeWidth={1.5} />
               </span>
               <span>
-                <span className="block font-serif text-lg sm:text-xl leading-none tracking-wide text-ivory">BRICS-NET</span>
+                <span className="block font-serif text-base sm:text-xl leading-none tracking-wide text-ivory">BRICS-NET</span>
                 <span className="label mt-0.5 hidden sm:block !text-[9px]">Sovereign Terminal // 2026</span>
               </span>
             </button>
           </div>
 
           {/* Right: Compact Active Tab Badge, Live RESERVES, Locked DELEGATION PIN Button, and CHAIR ACCESS */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap justify-end">
+          <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
             {/* Active Tab Badge */}
-            <span className="hidden md:inline-flex items-center gap-1.5 border border-hairline bg-[#111614] px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-gold">
-              <span className="h-1.5 w-1.5 rounded-full bg-gold" />
-              {activeTabLabel}
+            <span className="inline-flex items-center gap-1.5 border border-hairline bg-[#111614] px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-gold">
+              <span className="h-1.5 w-1.5 rounded-full bg-gold shrink-0" />
+              <span className="truncate max-w-[110px] sm:max-w-none">{activeTabLabel}</span>
             </span>
 
             {/* Live RESERVES */}
@@ -339,15 +339,22 @@ export default function Layout() {
                     : 'border-emerald/40 bg-emerald/10 text-emerald'
                 }`}
               >
-                {bankrupt ? 'BANKRUPT ($0)' : `RESERVES: $${Math.round(reserves).toLocaleString()}`}
+                {bankrupt ? (
+                  'BANKRUPT ($0)'
+                ) : (
+                  <>
+                    <span className="hidden sm:inline">RESERVES:&nbsp;</span>
+                    <span>${Math.round(reserves).toLocaleString()}</span>
+                  </>
+                )}
               </span>
             )}
 
             {/* Locked DELEGATION PIN Button / Identity */}
             {me ? (
-              <div className="inline-flex items-center gap-1.5 border border-gold/40 bg-[#111614] px-2.5 py-1 font-mono text-[10px] sm:text-[11px]">
+              <div className="inline-flex min-h-[44px] sm:min-h-0 items-center gap-1.5 border border-gold/40 bg-[#111614] px-2.5 py-1 font-mono text-[10px] sm:text-[11px]">
                 <Lock size={11} className="text-gold shrink-0" />
-                <span className="font-bold uppercase tracking-wider text-ivory truncate max-w-[90px] sm:max-w-[130px]">{me}</span>
+                <span className="font-bold uppercase tracking-wider text-ivory truncate max-w-[85px] sm:max-w-[130px]">{me}</span>
                 <button
                   type="button"
                   onClick={releaseDelegation}
@@ -422,7 +429,7 @@ export default function Layout() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.22, ease: 'easeOut' }}
-              className="relative z-10 flex h-full w-72 max-w-[85vw] flex-col border-r border-[#26302B] bg-[#111614] shadow-[8px_0_32px_rgba(0,0,0,0.75)]"
+              className="relative z-10 flex h-full w-[85vw] max-w-xs flex-col border-r border-[#26302B] bg-[#111614] shadow-[8px_0_32px_rgba(0,0,0,0.75)]"
             >
               {/* Drawer Header */}
               <div className="flex items-center justify-between border-b border-[#26302B] bg-[#0A0D0C] px-4 py-3.5">
@@ -438,16 +445,16 @@ export default function Layout() {
                 <button
                   type="button"
                   onClick={() => setDrawerOpen(false)}
-                  className="border border-[#26302B] bg-[#111614] p-1.5 text-sage transition-colors hover:border-gold hover:text-gold"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center border border-[#26302B] bg-[#111614] p-1.5 text-sage transition-colors hover:border-gold hover:text-gold"
                   aria-label="Close navigation menu"
                 >
-                  <X size={15} />
+                  <X size={16} />
                 </button>
               </div>
 
               {/* Vertical Navigation Tabs */}
               <nav className="flex-1 overflow-y-auto py-2" aria-label="Primary Navigation">
-                <ul className="space-y-0.5 px-2">
+                <ul className="space-y-1 px-2">
                   {NAV.map((item) => {
                     const Icon = item.icon;
                     const active = isNavItemActive(item, location.pathname);
@@ -457,7 +464,7 @@ export default function Layout() {
                           to={item.to}
                           end={item.end}
                           onClick={() => setDrawerOpen(false)}
-                          className={`group relative flex items-center justify-between border px-3 py-2.5 font-mono text-xs uppercase tracking-[0.14em] transition-colors ${
+                          className={`group relative flex min-h-[48px] items-center justify-between border px-3 py-3.5 font-mono text-xs uppercase tracking-[0.14em] transition-colors ${
                             active
                               ? 'border-[#D4AF37]/50 bg-[#D4AF37]/10 font-bold text-[#D4AF37]'
                               : 'border-transparent text-ivory/80 hover:border-[#26302B] hover:bg-[#161C19] hover:text-ivory'
@@ -489,7 +496,7 @@ export default function Layout() {
                         to="/admin"
                         onClick={() => setDrawerOpen(false)}
                         className={({ isActive }) =>
-                          `relative flex items-center justify-between border px-3 py-2.5 font-mono text-xs uppercase tracking-[0.14em] transition-colors ${
+                          `relative flex min-h-[48px] items-center justify-between border px-3 py-3.5 font-mono text-xs uppercase tracking-[0.14em] transition-colors ${
                             isActive
                               ? 'border-crimson/60 bg-crimson/15 font-bold text-crimson'
                               : 'border-transparent text-crimson/80 hover:border-crimson/40 hover:bg-crimson/10 hover:text-crimson'

@@ -293,7 +293,7 @@ export const TabHelpButton = memo(function TabHelpButton({ tabKey }: { tabKey: T
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group flex items-center gap-1.5 border border-gold/60 bg-gold/10 px-2.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-gold hover:bg-gold hover:text-obsidian transition-colors shrink-0"
+        className="group inline-flex min-h-[44px] sm:min-h-0 items-center gap-1.5 border border-gold/60 bg-gold/10 px-2.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-gold hover:bg-gold hover:text-obsidian transition-colors shrink-0"
         title="Open Guide for this Tab"
       >
         <HelpCircle size={12} className="text-gold group-hover:text-obsidian" />
@@ -302,7 +302,7 @@ export const TabHelpButton = memo(function TabHelpButton({ tabKey }: { tabKey: T
 
       <AnimatePresence>
         {open && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -322,7 +322,7 @@ export const TabHelpButton = memo(function TabHelpButton({ tabKey }: { tabKey: T
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="relative w-full max-w-xl max-h-[85vh] flex flex-col border border-gold/50 bg-[#0A0D0C] shadow-[0_0_50px_rgba(212,175,55,0.12)] text-ivory z-10"
+              className="relative w-[94vw] max-w-lg max-h-[85vh] overflow-y-auto flex flex-col border border-gold/50 bg-[#0A0D0C] shadow-[0_0_50px_rgba(212,175,55,0.12)] text-ivory z-10 p-4 sm:p-6"
             >
               {/* Corner crosshairs */}
               <span className="xh -left-[4px] -top-[7px]">+</span>
@@ -331,7 +331,7 @@ export const TabHelpButton = memo(function TabHelpButton({ tabKey }: { tabKey: T
               <span className="xh -bottom-[7px] -right-[4px]">+</span>
 
               {/* Modal Header */}
-              <div className="flex items-center justify-between border-b border-hairline bg-[#161C19] px-4 py-3">
+              <div className="flex items-start justify-between gap-3 border-b border-hairline bg-[#161C19] -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 px-4 py-3 mb-4">
                 <div>
                   <p className="font-mono text-[10px] uppercase tracking-widest text-gold">{data.kicker}</p>
                   <h3 className="font-serif text-lg font-bold text-ivory leading-tight mt-0.5">{data.title}</h3>
@@ -339,7 +339,7 @@ export const TabHelpButton = memo(function TabHelpButton({ tabKey }: { tabKey: T
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="p-1 text-sage hover:text-ivory hover:border-gold border border-transparent transition-colors"
+                  className="inline-flex min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 items-center justify-center p-1 text-sage hover:text-ivory hover:border-gold border border-transparent transition-colors"
                   aria-label="Close"
                 >
                   <X size={16} />
@@ -347,7 +347,7 @@ export const TabHelpButton = memo(function TabHelpButton({ tabKey }: { tabKey: T
               </div>
 
               {/* Modal Body */}
-              <div className="overflow-y-auto p-4 sm:p-5 space-y-3 font-sans text-xs">
+              <div className="space-y-3 font-sans text-xs">
                 {data.sections.map((sec, idx) => (
                   <div key={idx} className="border border-hairline bg-[#111614] p-3.5 space-y-1">
                     <h4 className="font-mono text-[11px] uppercase tracking-wider text-gold font-bold">
@@ -361,14 +361,14 @@ export const TabHelpButton = memo(function TabHelpButton({ tabKey }: { tabKey: T
               </div>
 
               {/* Modal Footer */}
-              <div className="flex items-center justify-between border-t border-hairline bg-[#161C19] px-4 py-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline bg-[#161C19] -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 mt-4 px-4 py-2.5">
                 <span className="font-mono text-[10px] uppercase text-sage">
                   MUN 2026 // DELEGATE INTELLIGENCE
                 </span>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="btn btn-gold !py-1 !px-3 font-mono text-xs uppercase tracking-wider font-bold"
+                  className="btn btn-gold min-h-[44px] sm:min-h-0 !py-1.5 !px-3 font-mono text-xs uppercase tracking-wider font-bold"
                 >
                   [ ✕ GOT IT ]
                 </button>

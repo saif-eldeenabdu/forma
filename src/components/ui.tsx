@@ -119,9 +119,9 @@ export function Field({ label, children }: { label: string; children: ReactNode 
 export function PageHeader({ kicker, title, children }: { kicker: string; title: string; children?: ReactNode }) {
   return (
     <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-hairline pb-3">
-      <div>
+      <div className="min-w-0">
         <p className="label !text-gold">{kicker}</p>
-        <h1 className="mt-1 text-3xl font-medium leading-none text-ivory md:text-4xl">{title}</h1>
+        <h1 className="mt-1 text-2xl sm:text-3xl font-medium leading-tight text-ivory md:text-4xl break-words">{title}</h1>
       </div>
       {children}
     </div>

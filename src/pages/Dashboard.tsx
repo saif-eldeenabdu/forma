@@ -24,11 +24,11 @@ const MacroBar = memo(function MacroBar() {
   const modeColor = cs.currentMode === 'NORMAL' ? 'text-emerald' : 'text-crimson';
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
       <Panel title="Global USD Reserve Share">
-        <div className="flex items-end justify-between">
-          <AnimatedNumber value={cs.usdDominanceIndex} suffix="%" className="text-5xl text-ivory" />
-          <span className={`tabular text-sm ${delta < 0 ? 'text-emerald' : delta > 0 ? 'text-crimson' : 'text-sage'}`}>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <AnimatedNumber value={cs.usdDominanceIndex} suffix="%" className="text-4xl sm:text-5xl text-ivory" />
+          <span className={`tabular text-xs sm:text-sm ${delta < 0 ? 'text-emerald' : delta > 0 ? 'text-crimson' : 'text-sage'}`}>
             {delta === 0 ? '— 0.0' : `${delta < 0 ? '▼' : '▲'} ${Math.abs(delta).toFixed(1)}`} pp vs baseline
           </span>
         </div>
@@ -39,8 +39,8 @@ const MacroBar = memo(function MacroBar() {
       </Panel>
 
       <Panel title='"BRICS Unit" Viability Index'>
-        <div className="flex items-end justify-between">
-          <AnimatedNumber value={cs.bricsUnitConfidence} suffix="%" className="text-5xl text-ivory" />
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <AnimatedNumber value={cs.bricsUnitConfidence} suffix="%" className="text-4xl sm:text-5xl text-ivory" />
           <span className="label !text-gold">{cs.goldBackingRatio}% Gold / {100 - cs.goldBackingRatio}% Basket</span>
         </div>
         <div className="mt-3 flex h-1.5 bg-charcoal">
@@ -51,9 +51,9 @@ const MacroBar = memo(function MacroBar() {
       </Panel>
 
       <Panel title="BRICS Pay / DCMS Network Load">
-        <div className="flex items-end justify-between">
-          <AnimatedNumber value={cs.bricsPayAdoption} decimals={1} suffix="%" className="text-5xl text-ivory" />
-          <span className="tabular text-sm text-emerald">{msgs.toLocaleString('en-US')} msg/s</span>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <AnimatedNumber value={cs.bricsPayAdoption} decimals={1} suffix="%" className="text-4xl sm:text-5xl text-ivory" />
+          <span className="tabular text-xs sm:text-sm text-emerald">{msgs.toLocaleString('en-US')} msg/s</span>
         </div>
         <div className="mt-3 h-1.5 bg-charcoal">
           <div className="h-full bg-emerald transition-[width] duration-700" style={{ width: `${cs.bricsPayAdoption}%` }} />
@@ -131,72 +131,74 @@ const ExchangeMatrix = memo(function ExchangeMatrix({ selected, toggle }: { sele
           <span className="label">{frozen ? 'Feed suspended' : 'Live'}</span>
         </div>
       }
-      bodyClass="p-0 overflow-x-auto"
+      bodyClass="p-0"
     >
-      <table className="w-full min-w-[520px] text-left">
-        <thead>
-          <tr className="border-b border-hairline">
-            {['Chart', 'Currency', 'Rate', '24h', 'Trend'].map((h, i) => (
-              <th key={h} className={`label px-3 py-2 font-normal ${i >= 2 ? 'text-right' : ''} ${i === 0 ? 'w-14' : ''}`}>
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {filteredEntries.map(([code, cur]) => {
-            const country = byCurrency(code);
-            const sanction = country ? (cs.sanctions[country.name] || cs.sanctionedCountries?.includes(country.name)) : undefined;
-            const pressure = cs.pressure[code];
-            const up = cur.change24h >= 0;
-            const color = up ? '#10B981' : '#E11D48';
-            const idx = Object.keys(state.currencies).indexOf(code);
-            const on = selected.includes(code);
-            return (
-              <tr key={code} className="border-b border-hairline/60 last:border-0 hover:bg-charcoal/60">
-                <td className="px-3 py-2">
-                  <button
-                    onClick={() => toggle(code)}
-                    aria-pressed={on}
-                    aria-label={`Toggle ${code} on chart`}
-                    className="h-3.5 w-3.5 border"
-                    style={{ borderColor: LINE_COLORS[idx % LINE_COLORS.length], background: on ? LINE_COLORS[idx % LINE_COLORS.length] : 'transparent' }}
-                  />
-                </td>
-                <td className="px-3 py-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="tabular text-sm font-bold text-ivory">{code}</span>
-                    <span className="text-xs text-sage">{cur.name}</span>
-                    {country && (
-                      <span
-                        className={`border px-1 py-0.2 font-mono text-[9px] uppercase ${
-                          country.tier === 'FULL BRICS MEMBER'
-                            ? 'border-gold/60 text-gold bg-gold/10'
-                            : 'border-emerald/60 text-emerald bg-emerald/10'
-                        }`}
-                      >
-                        {country.tier === 'FULL BRICS MEMBER' ? 'Full' : 'Partner'}
-                      </span>
-                    )}
-                    {sanction && <span className="stamp">Sanctioned // SWIFT cutoff</span>}
-                    {country && cs.assetFreeze?.country === country.name && <span className="stamp">Assets frozen // Clearing suspended</span>}
-                    {pressure && !frozen && <span className="tabular border border-gold px-1 text-[9px] uppercase text-gold">{pressure}</span>}
-                  </div>
-                </td>
-                <td className="px-3 py-2 text-right">
-                  {frozen ? <span className="tabular glitch text-sm font-bold">ERR_FIAT_NULL</span> : <AnimatedNumber value={cur.rateToUSD} decimals={cur.rateToUSD >= 10 ? 2 : 3} className="text-sm text-ivory" />}
-                </td>
-                <td className={`tabular px-3 py-2 text-right text-sm ${frozen || cur.change24h === 0 ? 'text-sage' : up ? 'text-emerald' : 'text-crimson'}`}>
-                  {frozen ? '— —' : cur.change24h === 0 ? '— 0.00%' : `${up ? '▲' : '▼'} ${Math.abs(cur.change24h).toFixed(2)}%`}
-                </td>
-                <td className="px-3 py-2">
-                  <div className="flex justify-end">{frozen ? <span className="tabular text-xs text-crimson">NO DATA</span> : <Sparkline data={cur.history.slice(-30)} color={color} />}</div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="w-full overflow-x-auto -mx-1 px-1">
+        <table className="w-full min-w-[520px] text-left">
+          <thead>
+            <tr className="border-b border-hairline">
+              {['Chart', 'Currency', 'Rate', '24h', 'Trend'].map((h, i) => (
+                <th key={h} className={`label whitespace-nowrap px-3 py-2 font-normal ${i >= 2 ? 'text-right' : ''} ${i === 0 ? 'w-14' : ''}`}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredEntries.map(([code, cur]) => {
+              const country = byCurrency(code);
+              const sanction = country ? (cs.sanctions[country.name] || cs.sanctionedCountries?.includes(country.name)) : undefined;
+              const pressure = cs.pressure[code];
+              const up = cur.change24h >= 0;
+              const color = up ? '#10B981' : '#E11D48';
+              const idx = Object.keys(state.currencies).indexOf(code);
+              const on = selected.includes(code);
+              return (
+                <tr key={code} className="border-b border-hairline/60 last:border-0 hover:bg-charcoal/60">
+                  <td className="whitespace-nowrap px-3 py-2">
+                    <button
+                      onClick={() => toggle(code)}
+                      aria-pressed={on}
+                      aria-label={`Toggle ${code} on chart`}
+                      className="h-4 w-4 border"
+                      style={{ borderColor: LINE_COLORS[idx % LINE_COLORS.length], background: on ? LINE_COLORS[idx % LINE_COLORS.length] : 'transparent' }}
+                    />
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="tabular text-sm font-bold text-ivory">{code}</span>
+                      <span className="text-xs text-sage">{cur.name}</span>
+                      {country && (
+                        <span
+                          className={`border px-1 py-0.2 font-mono text-[9px] uppercase ${
+                            country.tier === 'FULL BRICS MEMBER'
+                              ? 'border-gold/60 text-gold bg-gold/10'
+                              : 'border-emerald/60 text-emerald bg-emerald/10'
+                          }`}
+                        >
+                          {country.tier === 'FULL BRICS MEMBER' ? 'Full' : 'Partner'}
+                        </span>
+                      )}
+                      {sanction && <span className="stamp">Sanctioned // SWIFT cutoff</span>}
+                      {country && cs.assetFreeze?.country === country.name && <span className="stamp">Assets frozen // Clearing suspended</span>}
+                      {pressure && !frozen && <span className="tabular border border-gold px-1 text-[9px] uppercase text-gold">{pressure}</span>}
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right">
+                    {frozen ? <span className="tabular glitch text-sm font-bold">ERR_FIAT_NULL</span> : <AnimatedNumber value={cur.rateToUSD} decimals={cur.rateToUSD >= 10 ? 2 : 3} className="text-sm text-ivory" />}
+                  </td>
+                  <td className={`tabular whitespace-nowrap px-3 py-2 text-right text-sm ${frozen || cur.change24h === 0 ? 'text-sage' : up ? 'text-emerald' : 'text-crimson'}`}>
+                    {frozen ? '— —' : cur.change24h === 0 ? '— 0.00%' : `${up ? '▲' : '▼'} ${Math.abs(cur.change24h).toFixed(2)}%`}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    <div className="flex justify-end">{frozen ? <span className="tabular text-xs text-crimson">NO DATA</span> : <Sparkline data={cur.history.slice(-30)} color={color} />}</div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       <p className="border-t border-hairline px-3 py-2 text-[11px] text-sage">
         Rate = local units per 1 USD. Green = local currency appreciating. DZD = 134.50. IDR, UZS, VND, UGX shown as ×1000; NGN as ×100.
       </p>
@@ -229,12 +231,12 @@ const CompareChart = memo(function CompareChart({ selected }: { selected: string
   return (
     <Panel title="Comparative Value Index // vs USD (start = 100)" right={<span className="label">Higher = stronger</span>}>
       {frozen ? (
-        <div className="grid h-64 place-items-center">
+        <div className="grid h-[240px] sm:h-[320px] place-items-center">
           <p className="tabular glitch text-xl font-bold">CHART FEED OFFLINE // ERR_FIAT_NULL</p>
         </div>
       ) : (
-        <div className="h-64 w-full">
-          <ResponsiveContainer>
+        <div className="h-[240px] sm:h-[320px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
               <CartesianGrid stroke="#26302B" strokeDasharray="2 4" />
               <XAxis dataKey="t" stroke="#8E9B94" tick={{ fontSize: 10, fontFamily: 'JetBrains Mono' }} tickLine={false} />
@@ -311,7 +313,7 @@ const Roster = memo(function Roster() {
       }
       bodyClass="p-0"
     >
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 [&>*]:border-b [&>*]:border-r [&>*]:border-hairline">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 [&>*]:border-b [&>*]:border-r [&>*]:border-hairline">
         {filtered.map((c) => {
           const s = cs.sanctions[c.name];
           const isSanctioned = !!s || !!cs.sanctionedCountries?.includes(c.name);
@@ -381,8 +383,8 @@ const CyberAttackOverlay = memo(function CyberAttackOverlay() {
   const msgs = (state.backchannelMessages || []).slice(-10).reverse();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/95 p-4 backdrop-blur-md">
-      <div className="relative w-full max-w-4xl border-2 border-crimson bg-charcoal p-6 shadow-[0_0_100px_rgba(225,29,72,0.6)] font-mono">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/95 p-3 sm:p-4 backdrop-blur-md">
+      <div className="relative w-[94vw] max-w-lg sm:max-w-4xl max-h-[85vh] overflow-y-auto border-2 border-crimson bg-charcoal p-4 sm:p-6 shadow-[0_0_100px_rgba(225,29,72,0.6)] font-mono">
         <div className="flex flex-wrap items-center justify-between border-b-2 border-crimson pb-4">
           <div className="flex items-center gap-3">
             <span className="h-4 w-4 rounded-full bg-crimson animate-ping" />
@@ -475,12 +477,12 @@ export default function Dashboard() {
       </div>
       <FreezeBanner />
       <MacroBar />
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
-        <div className="space-y-3 xl:col-span-7 2xl:col-span-8">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
+        <div className="space-y-3 lg:col-span-7 2xl:col-span-8">
           <ExchangeMatrix selected={selected} toggle={toggle} />
           <CompareChart selected={selected} />
         </div>
-        <div className="space-y-3 xl:col-span-5 2xl:col-span-4">
+        <div className="space-y-3 lg:col-span-5 2xl:col-span-4">
           <TimerPanel />
           <GslPanel />
         </div>

@@ -7,11 +7,12 @@
   body,
   #root {
     min-height: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
   body {
-    @apply bg-obsidian font-sans text-ivory antialiased;
+    @apply bg-obsidian font-sans text-ivory antialiased overflow-x-hidden;
     letter-spacing: -0.005em;
-    overflow-x: hidden;
   }
   ::selection {
     background: #d4af37;
@@ -31,6 +32,7 @@
   input,
   textarea {
     color-scheme: dark;
+    @apply text-base sm:text-sm;
   }
   :focus-visible {
     outline: 1px solid #d4af37;
@@ -40,10 +42,10 @@
 
 @layer components {
   .panel {
-    @apply relative border border-hairline bg-basalt;
+    @apply relative border border-hairline bg-basalt max-w-full;
   }
   .panel-head {
-    @apply flex items-center justify-between gap-3 border-b border-hairline px-3 py-2;
+    @apply flex flex-wrap items-center justify-between gap-2 border-b border-hairline px-3 py-2;
   }
   .label {
     @apply font-mono text-[10px] uppercase tracking-[0.18em] text-sage;
@@ -56,7 +58,7 @@
     @apply pointer-events-none absolute select-none font-mono text-[11px] leading-none text-sage/70;
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 border border-hairline bg-charcoal px-3 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ivory transition-colors;
+    @apply inline-flex min-h-[44px] sm:min-h-0 items-center justify-center gap-2 border border-hairline bg-charcoal px-3 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ivory transition-colors;
   }
   .btn:hover:not(:disabled) {
     @apply border-gold text-gold;
@@ -84,7 +86,7 @@
     @apply border-crimson bg-crimson/10 text-crimson;
   }
   .field {
-    @apply w-full border border-hairline bg-charcoal px-3 py-2 text-sm text-ivory placeholder:text-sage/60;
+    @apply w-full border border-hairline bg-charcoal px-3 py-2 text-base sm:text-sm text-ivory placeholder:text-sage/60;
   }
   .field:focus {
     @apply border-gold outline-none;

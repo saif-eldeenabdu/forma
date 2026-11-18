@@ -44,10 +44,10 @@ const Dossier = memo(function Dossier({ id, p }: { id: string; p: ChairProfile }
         <span className="text-sage">Ref {id.toUpperCase()}-01</span>
       </header>
       <div className="space-y-4 p-4">
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row items-start gap-4">
           <Portrait src={p.photoUrl} name={p.name} color={color} />
           <div className="min-w-0 space-y-2">
-            <span className="inline-block border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider" style={{ borderColor: color, color }}>
+            <span className="inline-block border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider break-words" style={{ borderColor: color, color }}>
               {p.title}
             </span>
             <h2 className="font-serif text-2xl leading-tight text-ivory">{p.name}</h2>
@@ -88,7 +88,7 @@ export default function Dais() {
       <PageHeader kicker="Committee Leadership" title="Executive Dossiers // The Dais">
         <TabHelpButton tabKey="dais" />
       </PageHeader>
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <Dossier id="judy" p={chairs.judy ?? CHAIR_PROFILES.judy} />
         <Dossier id="saif" p={chairs.saif ?? CHAIR_PROFILES.saif} />
       </div>

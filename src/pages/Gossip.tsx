@@ -50,7 +50,7 @@ export default function Gossip() {
                 if (submitted) setSubmitted(false);
               }}
               placeholder="Write your gossip here..."
-              className="field w-full font-mono text-sm leading-relaxed text-ivory placeholder:text-sage/40 resize-y min-h-[140px]"
+              className="field w-full font-mono text-base sm:text-sm leading-relaxed text-ivory placeholder:text-sage/40 resize-y min-h-[140px]"
               autoFocus
             />
           </div>
@@ -68,7 +68,7 @@ export default function Gossip() {
             <button
               type="submit"
               disabled={!message.trim()}
-              className="btn btn-gold flex items-center justify-center gap-2 px-6 py-2.5 font-mono text-xs uppercase tracking-widest disabled:opacity-40"
+              className="btn btn-gold min-h-[44px] w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 font-mono text-xs uppercase tracking-widest disabled:opacity-40"
             >
               <Send size={13} />
               <span>SUBMIT GOSSIP</span>

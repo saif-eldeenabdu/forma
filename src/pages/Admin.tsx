@@ -86,24 +86,24 @@ const TimerTab = memo(function TimerTab() {
   }, [t.totalSeconds, t.modTotalSeconds]);
 
   return (
-    <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
       <div className="space-y-3">
         <TimerPanel />
         <Panel title="Timer Controls">
           <div className="grid grid-cols-3 gap-px border border-hairline bg-hairline">
             {(['GSL', 'MOD', 'UNMOD'] as TimerType[]).map((k) => (
-              <button key={k} onClick={() => actions.setTimerType(k)} className={`py-2 font-mono text-[11px] uppercase tracking-[0.14em] ${t.type === k ? 'bg-gold text-obsidian' : 'bg-charcoal text-sage hover:text-ivory'}`}>
+              <button key={k} onClick={() => actions.setTimerType(k)} className={`min-h-[44px] py-2 font-mono text-[11px] uppercase tracking-[0.14em] ${t.type === k ? 'bg-gold text-obsidian' : 'bg-charcoal text-sage hover:text-ivory'}`}>
                 {k === 'GSL' ? 'GSL' : k === 'MOD' ? 'Mod Caucus' : 'Unmod Caucus'}
               </button>
             ))}
           </div>
-          <div className="mt-3 grid grid-cols-4 gap-2">
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button className="btn btn-emerald" onClick={actions.startTimer} disabled={isExpired}><Play size={13} /> Start</button>
             <button className="btn" onClick={actions.pauseTimer}><Pause size={13} /> Pause</button>
             <button className="btn" onClick={actions.resetTimer}><RotateCcw size={13} /> Reset</button>
             <button className="btn" onClick={actions.nextSpeaker} title="Remove the head of the GSL and give the floor to the next speaker"><SkipForward size={13} /> Next</button>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Speaker time (sec)">
               <div className="flex gap-2">
                 <input type="number" min={5} className="field tabular" value={speakerSec} onChange={(e) => setSpeakerSec(Number(e.target.value))} />
@@ -476,15 +476,15 @@ const SecurityTab = memo(function SecurityTab() {
         Delegation authentication codes are stored in Firebase RTDB (<code className="text-gold">delegationPins/&#123;country&#125;</code>).
         The Chair can inspect or override any country's 4-digit PIN in real time.
       </p>
-      <div className="overflow-x-auto border border-hairline bg-charcoal/50">
-        <table className="w-full text-left text-xs font-mono">
+      <div className="w-full overflow-x-auto -mx-1 px-1 border border-hairline bg-charcoal/50">
+        <table className="w-full min-w-[540px] text-left text-xs font-mono">
           <thead>
             <tr className="border-b border-hairline text-sage uppercase tracking-wider text-[10px]">
-              <th className="p-2.5">Delegation</th>
-              <th className="p-2.5">Tier</th>
-              <th className="p-2.5">Currency</th>
-              <th className="p-2.5 text-center">Current PIN</th>
-              <th className="p-2.5 text-right">Action</th>
+              <th className="whitespace-nowrap p-2.5">Delegation</th>
+              <th className="whitespace-nowrap p-2.5">Tier</th>
+              <th className="whitespace-nowrap p-2.5">Currency</th>
+              <th className="whitespace-nowrap p-2.5 text-center">Current PIN</th>
+              <th className="whitespace-nowrap p-2.5 text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-hairline">
@@ -493,11 +493,11 @@ const SecurityTab = memo(function SecurityTab() {
               const isEditing = editCountry === c.name;
               return (
                 <tr key={c.name} className="hover:bg-charcoal/80">
-                  <td className="p-2.5 font-bold text-ivory">
+                  <td className="whitespace-nowrap p-2.5 font-bold text-ivory">
                     <span className="font-serif text-sm">{c.name}</span>
                     <span className="ml-2 text-[10px] text-sage">({c.code})</span>
                   </td>
-                  <td className="p-2.5">
+                  <td className="whitespace-nowrap p-2.5">
                     <span
                       className={`border px-1.5 py-0.5 text-[9px] uppercase tracking-wider ${
                         c.tier === 'FULL BRICS MEMBER'
@@ -508,22 +508,22 @@ const SecurityTab = memo(function SecurityTab() {
                       {c.tier}
                     </span>
                   </td>
-                  <td className="p-2.5 text-sage">{c.currencyCode}</td>
-                  <td className="p-2.5 text-center font-mono text-sm tracking-widest text-gold font-bold">
+                  <td className="whitespace-nowrap p-2.5 text-sage">{c.currencyCode}</td>
+                  <td className="whitespace-nowrap p-2.5 text-center font-mono text-sm tracking-widest text-gold font-bold">
                     {isEditing ? (
                       <input
                         type="text"
                         maxLength={8}
                         value={pinVal}
                         onChange={(e) => setPinVal(e.target.value)}
-                        className="field !py-0.5 !px-2 w-20 text-center font-mono text-sm"
+                        className="field !py-0.5 !px-2 w-20 text-center font-mono text-base sm:text-sm"
                         autoFocus
                       />
                     ) : (
                       currentPin
                     )}
                   </td>
-                  <td className="p-2.5 text-right">
+                  <td className="whitespace-nowrap p-2.5 text-right">
                     {isEditing ? (
                       <div className="flex justify-end gap-1.5">
                         <button
@@ -611,7 +611,7 @@ const SwanTab = memo(function SwanTab() {
         </SwanCard>
 
         <SwanCard title="Mode 3 // Secondary Sanctions Roulette" desc="Stamps SANCTIONED // SWIFT CUTOFF on the country, drops its currency 12%, and opens a 10-minute BRICS Pay bail-out window.">
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <select className="field" value={country} onChange={(e) => setCountry(e.target.value)} aria-label="Country to sanction">
               <optgroup label="FULL BRICS MEMBERS (11)">
                 {FULL_MEMBERS.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
@@ -826,7 +826,7 @@ const MarketMakerTab = memo(function MarketMakerTab() {
                     <span>CRASH / DUMP</span>
                     <span>PUMP / INFLATE</span>
                   </div>
-                  <div className="grid grid-cols-6 gap-1 font-mono text-xs">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 font-mono text-xs">
                     <button
                       onClick={() => actions.shiftTickerPrice(sym, -25)}
                       className="btn !px-1 !py-1 text-crimson hover:bg-crimson/20"
@@ -903,17 +903,17 @@ const MarketMakerTab = memo(function MarketMakerTab() {
         <p className="text-xs text-sage mb-3">
           Live real-time ranking of all 22 committee delegations ranked by Total Sovereign Net Worth (Starting capital: $10,000,000).
         </p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left font-mono text-xs">
+        <div className="w-full overflow-x-auto -mx-1 px-1">
+          <table className="w-full min-w-[680px] text-left font-mono text-xs">
             <thead>
               <tr className="border-b border-hairline text-[10px] uppercase text-sage">
-                <th className="py-2 px-2">Rank</th>
-                <th className="py-2 px-2">Delegation</th>
-                <th className="py-2 px-2">Tier</th>
-                <th className="py-2 px-2 text-right">Cash Balance</th>
-                <th className="py-2 px-2">Active Positions</th>
-                <th className="py-2 px-2 text-right">Net Worth</th>
-                <th className="py-2 px-2 text-right">Total P&L</th>
+                <th className="whitespace-nowrap py-2 px-2">Rank</th>
+                <th className="whitespace-nowrap py-2 px-2">Delegation</th>
+                <th className="whitespace-nowrap py-2 px-2">Tier</th>
+                <th className="whitespace-nowrap py-2 px-2 text-right">Cash Balance</th>
+                <th className="whitespace-nowrap py-2 px-2">Active Positions</th>
+                <th className="whitespace-nowrap py-2 px-2 text-right">Net Worth</th>
+                <th className="whitespace-nowrap py-2 px-2 text-right">Total P&L</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline">
@@ -923,10 +923,10 @@ const MarketMakerTab = memo(function MarketMakerTab() {
 
                 return (
                   <tr key={item.country.name} className="hover:bg-charcoal/50 transition-colors">
-                    <td className="py-2.5 px-2 font-bold text-ivory">
+                    <td className="whitespace-nowrap py-2.5 px-2 font-bold text-ivory">
                       #{idx + 1}
                     </td>
-                    <td className="py-2.5 px-2">
+                    <td className="whitespace-nowrap py-2.5 px-2">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-[10px] text-gold font-bold px-1 py-0.5 border border-gold/30 bg-gold/10">
                           {item.country.code}
@@ -934,7 +934,7 @@ const MarketMakerTab = memo(function MarketMakerTab() {
                         <span className="font-bold text-ivory">{item.country.name}</span>
                       </div>
                     </td>
-                    <td className="py-2.5 px-2">
+                    <td className="whitespace-nowrap py-2.5 px-2">
                       <span
                         className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
                           item.country.tier === 'FULL BRICS MEMBER'
@@ -945,10 +945,10 @@ const MarketMakerTab = memo(function MarketMakerTab() {
                         {item.country.tier === 'FULL BRICS MEMBER' ? 'FULL BRICS' : 'PARTNER'}
                       </span>
                     </td>
-                    <td className="py-2.5 px-2 text-right tabular text-sage">
+                    <td className="whitespace-nowrap py-2.5 px-2 text-right tabular text-sage">
                       ${Math.round(item.portfolio.cash).toLocaleString()}
                     </td>
-                    <td className="py-2.5 px-2">
+                    <td className="whitespace-nowrap py-2.5 px-2">
                       {!hasPositions ? (
                         <span className="text-sage/60">No open positions</span>
                       ) : (
@@ -973,10 +973,10 @@ const MarketMakerTab = memo(function MarketMakerTab() {
                         </div>
                       )}
                     </td>
-                    <td className="py-2.5 px-2 text-right font-bold tabular text-ivory">
+                    <td className="whitespace-nowrap py-2.5 px-2 text-right font-bold tabular text-ivory">
                       ${Math.round(item.netWorth).toLocaleString()}
                     </td>
-                    <td className={`py-2.5 px-2 text-right font-bold tabular ${isProfit ? 'text-emerald' : 'text-crimson'}`}>
+                    <td className={`whitespace-nowrap py-2.5 px-2 text-right font-bold tabular ${isProfit ? 'text-emerald' : 'text-crimson'}`}>
                       {isProfit ? '+' : ''}${Math.round(item.pnl).toLocaleString()} ({isProfit ? '+' : ''}{item.pnlPct}%)
                     </td>
                   </tr>

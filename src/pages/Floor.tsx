@@ -80,7 +80,7 @@ function MotionForm() {
           </select>
         </Field>
         {(needsTotal || needsSpeaker) && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {needsTotal && (
               <Field label="Total duration (min)">
                 <input type="number" min={1} max={60} className="field tabular" value={mins} onChange={(e) => setMins(Number(e.target.value))} />
@@ -199,7 +199,7 @@ function GslAuctionDesk() {
 
         {bankrupt ? (
           <div className="border border-crimson bg-crimson/20 p-3 text-xs text-crimson font-bold text-center">
-            💀 SOVEREIGN DEFAULT // Bidding locked until bailed out.
+            SOVEREIGN DEFAULT (BANKRUPT) // Bidding locked until bailed out.
           </div>
         ) : (
           <>
@@ -215,11 +215,11 @@ function GslAuctionDesk() {
                   onChange={(e) => setBidAmount(Number(e.target.value))}
                   disabled={!me || bankrupt}
                 />
-                <div className="grid grid-cols-4 gap-1.5 text-[10px]">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px]">
                   <button
                     type="button"
                     onClick={() => setBidAmount((b) => Math.min(reserves, Math.max(minBid, b + 100000)))}
-                    className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                    className="min-h-[44px] sm:min-h-0 border border-hairline bg-charcoal p-1.5 text-sage hover:text-ivory"
                     disabled={!me || bankrupt}
                   >
                     +$100k
@@ -227,7 +227,7 @@ function GslAuctionDesk() {
                   <button
                     type="button"
                     onClick={() => setBidAmount((b) => Math.min(reserves, Math.max(minBid, b + 250000)))}
-                    className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                    className="min-h-[44px] sm:min-h-0 border border-hairline bg-charcoal p-1.5 text-sage hover:text-ivory"
                     disabled={!me || bankrupt}
                   >
                     +$250k
@@ -235,7 +235,7 @@ function GslAuctionDesk() {
                   <button
                     type="button"
                     onClick={() => setBidAmount((b) => Math.min(reserves, Math.max(minBid, b + 500000)))}
-                    className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                    className="min-h-[44px] sm:min-h-0 border border-hairline bg-charcoal p-1.5 text-sage hover:text-ivory"
                     disabled={!me || bankrupt}
                   >
                     +$500k
@@ -243,7 +243,7 @@ function GslAuctionDesk() {
                   <button
                     type="button"
                     onClick={() => setBidAmount(Math.max(minBid, reserves))}
-                    className="border border-gold/60 bg-gold/10 p-1 text-gold hover:bg-gold/20 font-bold"
+                    className="min-h-[44px] sm:min-h-0 border border-gold/60 bg-gold/10 p-1.5 text-gold hover:bg-gold/20 font-bold"
                     disabled={!me || bankrupt}
                   >
                     MAX
@@ -330,14 +330,14 @@ function SuezDecree() {
           Exclusive to the Arab Republic of Egypt. Current billing currency:{' '}
           <span className="tabular text-ivory">{current === 'USD' ? 'USD' : 'BRICS PAY / LOCAL'}</span>
         </p>
-        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Suez toll currency">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" role="radiogroup" aria-label="Suez toll currency">
           {(['USD', 'BRICS_PAY'] as SuezCurrency[]).map((c) => (
             <button
               key={c}
               role="radio"
               aria-checked={choice === c}
               onClick={() => setChoice(c)}
-              className={`border px-2 py-2 font-mono text-[11px] uppercase tracking-wider ${choice === c ? 'border-gold bg-gold/10 text-gold' : 'border-hairline text-sage'}`}
+              className={`min-h-[44px] sm:min-h-0 border px-2 py-2 font-mono text-[11px] uppercase tracking-wider ${choice === c ? 'border-gold bg-gold/10 text-gold' : 'border-hairline text-sage'}`}
             >
               {c === 'USD' ? 'Bill in USD' : 'BRICS Pay / EGP'}
             </button>
@@ -367,10 +367,10 @@ export default function Floor() {
         <PageHeader kicker="Floor Portal // Procedure" title="Motions & Floor">
           <TabHelpButton tabKey="floor" />
         </PageHeader>
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <MotionForm />
           <MotionLedger />
-          <div className="space-y-3">
+          <div className="space-y-3 md:col-span-2 lg:col-span-1">
             <SuezDecree />
             <GslAuctionDesk />
             <DirectiveForm />

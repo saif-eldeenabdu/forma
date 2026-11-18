@@ -49,12 +49,12 @@ function Side({
   return (
     <fieldset className="space-y-2 border border-hairline bg-charcoal/50 p-3">
       <legend className="label px-1 !text-gold">{label}</legend>
-      <div className="grid grid-cols-[110px_1fr] gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-[110px_1fr] gap-2">
         {unit !== CUSTOM && (
           <input type="number" min={1} className="field tabular" value={qty} onChange={(e) => setQty(Number(e.target.value))} aria-label={`${label} quantity`} />
         )}
         <select
-          className={`field ${unit === CUSTOM ? 'col-span-2' : ''}`}
+          className={`field ${unit === CUSTOM ? 'sm:col-span-2' : ''}`}
           value={unit}
           onChange={(e) => {
             const u = e.target.value;
@@ -106,7 +106,7 @@ function TradeForm({ kind }: { kind: TradeKind }) {
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {me ? (
           <Field label="Proposing delegation">
             <div className="field flex items-center justify-between bg-charcoal/60 text-ivory">
@@ -118,7 +118,7 @@ function TradeForm({ kind }: { kind: TradeKind }) {
             </div>
           </Field>
         ) : (
-          <div className="col-span-2 border border-gold/40 bg-gold/10 p-3 font-mono text-xs text-gold">
+          <div className="sm:col-span-2 border border-gold/40 bg-gold/10 p-3 font-mono text-xs text-gold">
             Authenticate as a delegation to submit proposals.
           </div>
         )}
@@ -224,7 +224,7 @@ function GrainExchange({ locked }: { locked: boolean }) {
       ) : (
         <form onSubmit={submit} className="space-y-3">
           {me ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Importer">
                 <div className="field flex items-center justify-between bg-charcoal/60 text-ivory">
                   <span className="flex items-center gap-2">
@@ -261,7 +261,7 @@ function GrainExchange({ locked }: { locked: boolean }) {
           </Field>
           <fieldset className="space-y-2">
             <legend className="label mb-1">Settlement currency</legend>
-            <div className="grid grid-cols-2 gap-2" role="radiogroup">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" role="radiogroup">
               {(['BRICS_PAY', 'USD'] as GrainSettlement[]).map((s) => (
                 <button
                   type="button"
@@ -270,7 +270,7 @@ function GrainExchange({ locked }: { locked: boolean }) {
                   aria-checked={settlement === s}
                   onClick={() => setSettlement(s)}
                   disabled={bankrupt}
-                  className={`border px-2 py-2 font-mono text-[11px] uppercase tracking-wider ${settlement === s ? (s === 'USD' ? 'border-crimson bg-crimson/10 text-crimson' : 'border-emerald bg-emerald/10 text-emerald') : 'border-hairline text-sage'}`}
+                  className={`min-h-[44px] sm:min-h-0 border px-2 py-2 font-mono text-[11px] uppercase tracking-wider ${settlement === s ? (s === 'USD' ? 'border-crimson bg-crimson/10 text-crimson' : 'border-emerald bg-emerald/10 text-emerald') : 'border-hairline text-sage'}`}
                 >
                   {s === 'USD' ? 'USD' : 'BRICS Pay / Local'}
                 </button>
@@ -295,26 +295,28 @@ function GrainExchange({ locked }: { locked: boolean }) {
       )}
       <div className="mt-4 border-t border-hairline pt-3">
         <p className="label mb-2">Stockpile register</p>
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="text-sage">
-              <th className="label py-1 text-left font-normal">Holder</th>
-              {GRAIN_TYPES.map((t) => (
-                <th key={t.id} className="label py-1 text-right font-normal">{t.short}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {holdings.map((c) => (
-              <tr key={c} className="border-t border-hairline/60">
-                <td className="py-1">{c}</td>
+        <div className="w-full overflow-x-auto -mx-1 px-1">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-sage">
+                <th className="label whitespace-nowrap py-1 pr-2 text-left font-normal">Holder</th>
                 {GRAIN_TYPES.map((t) => (
-                  <td key={t.id} className="tabular py-1 text-right text-ivory">{(state.grainStockpiles[c]?.[t.key] ?? 0).toLocaleString('en-US')}</td>
+                  <th key={t.id} className="label whitespace-nowrap py-1 pl-2 text-right font-normal">{t.short}</th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {holdings.map((c) => (
+                <tr key={c} className="border-t border-hairline/60">
+                  <td className="whitespace-nowrap py-1 pr-2">{c}</td>
+                  {GRAIN_TYPES.map((t) => (
+                    <td key={t.id} className="tabular whitespace-nowrap py-1 pl-2 text-right text-ivory">{(state.grainStockpiles[c]?.[t.key] ?? 0).toLocaleString('en-US')}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </Panel>
   );
@@ -394,11 +396,11 @@ function EmergencyBailoutForm() {
               onChange={(e) => setAmount(Number(e.target.value))}
               disabled={!me || bankrupt}
             />
-            <div className="grid grid-cols-4 gap-1 text-[10px] font-mono">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px] font-mono">
               <button
                 type="button"
                 onClick={() => setAmount(250000)}
-                className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                className="min-h-[44px] sm:min-h-0 border border-hairline bg-charcoal p-1.5 text-sage hover:text-ivory"
                 disabled={!me || bankrupt}
               >
                 $250k
@@ -406,7 +408,7 @@ function EmergencyBailoutForm() {
               <button
                 type="button"
                 onClick={() => setAmount(500000)}
-                className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                className="min-h-[44px] sm:min-h-0 border border-hairline bg-charcoal p-1.5 text-sage hover:text-ivory"
                 disabled={!me || bankrupt}
               >
                 $500k
@@ -414,7 +416,7 @@ function EmergencyBailoutForm() {
               <button
                 type="button"
                 onClick={() => setAmount(1000000)}
-                className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                className="min-h-[44px] sm:min-h-0 border border-hairline bg-charcoal p-1.5 text-sage hover:text-ivory"
                 disabled={!me || bankrupt}
               >
                 $1M
@@ -422,7 +424,7 @@ function EmergencyBailoutForm() {
               <button
                 type="button"
                 onClick={() => setAmount(2000000)}
-                className="border border-hairline bg-charcoal p-1 text-sage hover:text-ivory"
+                className="min-h-[44px] sm:min-h-0 border border-hairline bg-charcoal p-1.5 text-sage hover:text-ivory"
                 disabled={!me || bankrupt}
               >
                 $2M
@@ -502,15 +504,15 @@ export default function Trade() {
                   <p className="text-ivory"><span className="text-sage">THEY REQUEST FROM YOU:</span> <span className="text-gold font-bold">{t.request}</span></p>
                   {t.note && <p className="text-sage text-[11px] italic">Note: "{t.note}"</p>}
                 </div>
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex flex-col sm:flex-row gap-2">
                   <button
-                    className="btn btn-emerald flex-1 !py-1.5 text-xs"
+                    className="btn btn-emerald flex-1 min-h-[44px] !py-1.5 text-xs"
                     onClick={() => actions.acceptTradeCounterparty(t.id)}
                   >
                     <Check size={13} /> Accept &amp; Send to Chair
                   </button>
                   <button
-                    className="btn btn-crimson !py-1.5 text-xs"
+                    className="btn btn-crimson min-h-[44px] !py-1.5 text-xs"
                     onClick={() => actions.declineTradeCounterparty(t.id)}
                   >
                     <X size={13} /> Decline
@@ -553,7 +555,7 @@ export default function Trade() {
         </Panel>
       )}
 
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 2xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-3">
           {locked ? (
             <Panel title="Money Transfers" tone="crimson">
@@ -573,7 +575,7 @@ export default function Trade() {
 
         <GrainExchange locked={locked || barter} />
 
-        <div className="space-y-3 xl:col-span-2 2xl:col-span-1">
+        <div className="space-y-3 md:col-span-2 lg:col-span-1">
           <Panel
             title={barter ? 'Public Barter Ledger // Approved' : 'Public Settlement Ledger // Approved'}
             right={<span className="tabular text-[11px] text-sage">{approved.length + (barter ? 0 : grainDone.length)} entries</span>}
