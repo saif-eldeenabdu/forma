@@ -19,7 +19,7 @@ function Portrait({ src, name, color }: { src: string; name: string; color: stri
           No Image
         </div>
       ) : (
-        <img src={src} alt={name} className="h-full w-full object-cover" onError={() => setFailed(true)} />
+        <img src={src} alt={name} className="h-full w-full object-cover object-top" onError={() => setFailed(true)} />
       )}
     </div>
   );

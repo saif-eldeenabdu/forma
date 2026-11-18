@@ -71,8 +71,22 @@ export function normalize(raw: unknown): RootState {
       : null,
     cyberAttackActive: Boolean(cs.cyberAttackActive),
     chairs: {
-      judy: { ...seed.committeeState.chairs!.judy, ...(cs.chairs?.judy ?? {}) },
-      saif: { ...seed.committeeState.chairs!.saif, ...(cs.chairs?.saif ?? {}) },
+      judy: {
+        ...seed.committeeState.chairs!.judy,
+        ...(cs.chairs?.judy ?? {}),
+        photoUrl:
+          !cs.chairs?.judy?.photoUrl || cs.chairs.judy.photoUrl === '/judy.png'
+            ? '/judy.jpeg'
+            : cs.chairs.judy.photoUrl,
+      },
+      saif: {
+        ...seed.committeeState.chairs!.saif,
+        ...(cs.chairs?.saif ?? {}),
+        photoUrl:
+          !cs.chairs?.saif?.photoUrl || cs.chairs.saif.photoUrl === '/saif.png'
+            ? '/saif.jpeg'
+            : cs.chairs.saif.photoUrl,
+      },
     },
     activeChairPowerUp: cs.activeChairPowerUp ?? null,
   };

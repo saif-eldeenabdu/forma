@@ -4,7 +4,7 @@ export const CHAIR_PROFILES: Record<string, ChairProfile> = {
   judy: {
     name: 'Judy Kam Nakch',
     title: 'CHAIR // NDB SUPREME GOVERNOR',
-    photoUrl: '/judy.png',
+    photoUrl: '/judy.jpeg',
     bio: 'Welcome to the committee. I am Judy, and I will be serving as your Chair for this conference. I look forward to ensuring this is a memorable and highly productive session. If you require any procedural assistance or guidance, please do not hesitate to ask.',
     passiveName: 'The NDB Sovereign Yield',
     passiveDesc: 'Quiet authority to reward exceptional diplomacy with institutional gold grants.',
@@ -16,7 +16,7 @@ export const CHAIR_PROFILES: Record<string, ChairProfile> = {
   saif: {
     name: 'Saif-Eldeen Abdulaty',
     title: 'CHAIR // DIRECTOR OF BRICS CLEAR & MARKET OPERATIONS',
-    photoUrl: '/saif.png',
+    photoUrl: '/saif.jpeg',
     bio: 'Welcome everyone, I am Saif, and I am highly anticipating chairing this session. A tremendous amount of preparation has gone into building this simulation, and I expect an exceptional standard of debate from all delegations.',
     passiveName: 'Clearinghouse Authority',
     passiveDesc: 'Absolute control over market volatility and clearing access on the NDB Sovereign Exchange.',
